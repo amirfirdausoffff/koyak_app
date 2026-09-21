@@ -67,7 +67,7 @@ class DashboardView extends StatelessWidget {
             StatGrid(
               tiles: [
                 StatTileData(
-                  label: 'Gaji',
+                  label: 'Duit',
                   amount: summary.totalIncome,
                   caption: incomeCount == 0
                       ? 'Tap untuk isi'

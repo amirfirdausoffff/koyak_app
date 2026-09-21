@@ -44,7 +44,7 @@ class CashflowLedger {
         daysRemaining: daysRemaining,
       );
 
-  /// Baki = Baki bulan lepas + Gaji − Hutang − Belanja.
+  /// Baki = Baki bulan lepas + Duit masuk − Hutang − Belanja.
   /// Had Harian = Baki ÷ [daysRemaining]; zero for a finished month.
   ///
   /// Hutang counts every commitment for the month, paid or not — that money

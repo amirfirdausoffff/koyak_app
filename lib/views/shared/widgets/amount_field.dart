@@ -15,6 +15,8 @@ class AmountField extends StatelessWidget {
     this.large = false,
     this.textInputAction,
     this.onSubmitted,
+    this.allowZero = false,
+    this.optional = false,
   });
 
   final TextEditingController controller;
@@ -25,9 +27,22 @@ class AmountField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
 
-  static String? validate(String? value) {
-    final amount = CurrencyFormatter.parse(value ?? '');
-    return amount == null || amount <= 0 ? 'Masukkan jumlah RM yang sah' : null;
+  /// Accept RM 0 (e.g. an account that is now empty).
+  final bool allowZero;
+
+  /// Accept an empty field (nothing to change).
+  final bool optional;
+
+  static String? validate(
+    String? value, {
+    bool allowZero = false,
+    bool optional = false,
+  }) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty && optional) return null;
+    final amount = CurrencyFormatter.parse(text);
+    final isValid = amount != null && (allowZero ? amount >= 0 : amount > 0);
+    return isValid ? null : 'Masukkan jumlah RM yang sah';
   }
 
   @override
@@ -40,7 +55,8 @@ class AmountField extends StatelessWidget {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textInputAction: textInputAction,
       inputFormatters: [AmountInputFormatter()],
-      validator: validate,
+      validator: (value) =>
+          validate(value, allowZero: allowZero, optional: optional),
       onFieldSubmitted: onSubmitted,
       style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700),
       decoration: InputDecoration(

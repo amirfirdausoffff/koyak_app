@@ -30,7 +30,7 @@ void main() {
 
     expect(find.text('Koyak'), findsOneWidget);
     expect(find.text('Baki Duit Semasa'), findsOneWidget);
-    expect(find.text('Masukkan Gaji'), findsOneWidget);
+    expect(find.text('Masukkan Duit'), findsOneWidget);
   });
 
   testWidgets('with salary shows the daily limit sentence', (tester) async {
@@ -109,7 +109,7 @@ void main() {
     // This month starts with last month's leftover carried in.
     expect(find.text('RM 2,988.00'), findsOneWidget);
     expect(find.textContaining('Termasuk baki'), findsOneWidget);
-    expect(find.text('Masukkan Gaji'), findsNothing);
+    expect(find.text('Masukkan Duit'), findsNothing);
 
     await tester.tap(find.text('Analitik'));
     await tester.pumpAndSettle();
@@ -203,6 +203,45 @@ void main() {
     await tester.tap(_inDialog('Padam'));
     await tester.pumpAndSettle();
     expect(find.text('Nasi lemak'), findsNothing);
+  });
+
+  testWidgets('topping up an existing money source', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        incomes: [
+          IncomeModel(
+            id: 'gx',
+            source: 'GX Bank',
+            amount: 2,
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Duit'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Duit Kau'), findsOneWidget);
+
+    // First match is the source card; the other is the "GX Bank" chip.
+    await tester.tap(find.text('GX Bank').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Kemaskini Sumber'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).last, '10');
+    await tester.pump();
+    expect(find.text('Jumlah lepas simpan: RM 12.00'), findsOneWidget);
+
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Kemaskini GX Bank?'), findsOneWidget);
+    await tester.tap(_inDialog('Simpan'));
+    await tester.pumpAndSettle();
+
+    // Back on the sources list with the new balance.
+    expect(find.text('Kemaskini Sumber'), findsNothing);
+    expect(find.text('RM 12.00'), findsWidgets);
   });
 }
 

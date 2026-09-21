@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 /// One month's money:
-/// Baki bulan lepas + Gaji − Hutang − Belanja = Baki.
+/// Baki bulan lepas + Duit masuk − Hutang − Belanja = Baki.
 @immutable
 class CashflowSummary {
   const CashflowSummary({

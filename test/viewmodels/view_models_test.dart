@@ -353,4 +353,51 @@ void main() {
       expect(ledger.carriedInto(const YearMonth(2026, 10)), 4000 - 800);
     });
   });
+
+  group('IncomeViewModel money sources', () {
+    late IncomeViewModel vm;
+
+    setUp(() async {
+      vm = IncomeViewModel(
+        InMemoryRepository([
+          IncomeModel(
+            id: 'gx',
+            source: 'GX Bank',
+            amount: 2,
+            date: DateTime(2026, 9, 3),
+          ),
+        ]),
+        clock: clock,
+      );
+      await vm.load();
+    });
+
+    test('top up adds to the balance and keeps the month', () async {
+      await vm.adjust(
+        'gx',
+        source: 'GX Bank',
+        value: 10,
+        change: AmountChange.add,
+      );
+      final gx = vm.incomes.single;
+      expect(gx.amount, 12);
+      expect(gx.date, DateTime(2026, 9, 3));
+    });
+
+    test('replace sets a new balance, even zero, and can rename', () async {
+      await vm.adjust(
+        'gx',
+        source: 'GXBank',
+        value: 0,
+        change: AmountChange.replace,
+      );
+      expect(vm.incomes.single.amount, 0);
+      expect(vm.incomes.single.source, 'GXBank');
+    });
+
+    test('finds this month\'s source by name, ignoring case', () {
+      expect(vm.sourceNamed('gx bank')?.id, 'gx');
+      expect(vm.sourceNamed('Maybank'), isNull);
+    });
+  });
 }
