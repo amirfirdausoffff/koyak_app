@@ -77,6 +77,11 @@ void main() {
     await tester.tap(find.text('Simpan'));
     await tester.pumpAndSettle();
 
+    // Nothing is saved until the confirmation dialog is accepted.
+    expect(find.text('Simpan Belanja?'), findsOneWidget);
+    await tester.tap(_inDialog('Simpan'));
+    await tester.pumpAndSettle();
+
     expect(find.text('RM 750.00'), findsOneWidget);
   });
 
@@ -121,4 +126,85 @@ void main() {
     await tester.scrollUntilVisible(find.text('Nasi lemak'), 200);
     expect(find.text('Nasi lemak'), findsOneWidget);
   });
+
+  testWidgets('cancelling the save dialog keeps the balance', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        incomes: [
+          IncomeModel(
+            id: 'g',
+            source: 'Gaji',
+            amount: 1000,
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Catat Belanja'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).first, '250');
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    await tester.tap(_inDialog('Batal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Simpan Belanja?'), findsNothing);
+    // The quick sheet stays open with the amount, ready to fix.
+    expect(find.text('250'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10)); // dismiss the sheet
+    await tester.pumpAndSettle();
+    expect(find.text('RM 1,000.00'), findsWidgets);
+  });
+
+  testWidgets('swipe-to-delete asks first', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        expenses: [
+          ExpenseModel(
+            id: 'e',
+            title: 'Nasi lemak',
+            amount: 12,
+            category: ExpenseCategory.makan,
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Belanja'));
+    await tester.pumpAndSettle();
+
+    final row = find.text('Nasi lemak');
+    // The form's text fields are scrollables too; scroll the page itself.
+    await tester.scrollUntilVisible(
+      row,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+
+    await tester.drag(row, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Padam Belanja?'), findsOneWidget);
+    await tester.tap(_inDialog('Batal'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nasi lemak'), findsOneWidget);
+
+    await tester.drag(row, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(_inDialog('Padam'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nasi lemak'), findsNothing);
+  });
 }
+
+Finder _inDialog(String text) =>
+    find.descendant(of: find.byType(Dialog), matching: find.text(text));

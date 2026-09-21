@@ -8,8 +8,26 @@ import '../../../models/debt_model.dart';
 import '../../../viewmodels/debt_view_model.dart';
 import '../../shared/category_style.dart';
 import '../../shared/widgets/amount_field.dart';
+import '../../shared/widgets/confirm_dialogs.dart';
 import '../../shared/widgets/koyak_sheet.dart';
 import '../../shared/widgets/koyak_snack.dart';
+
+/// Past months keep a removed debt in their history, so say so.
+Future<bool> confirmDebtDelete(BuildContext context, DebtModel debt) =>
+    confirmDelete(
+      context,
+      title: 'Padam Hutang?',
+      itemName: debt.title,
+      message:
+          '"${debt.title}" akan dibuang dari senarai. Rekod bulan-bulan '
+          'lepas kekal dalam sejarah.',
+      summary: ConfirmSummary(
+        icon: Icons.receipt_long_outlined,
+        title: debt.title,
+        subtitle: debt.category.label,
+        amount: debt.amount,
+      ),
+    );
 
 /// Add a new debt, or edit [debt] when given.
 Future<void> showDebtFormSheet(BuildContext context, {DebtModel? debt}) =>
@@ -58,11 +76,26 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     if (picked != null) setState(() => _dueDate = picked);
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final vm = context.read<DebtViewModel>();
     final amount = CurrencyFormatter.parse(_amount.text)!;
+    final dueDate = _dueDate;
+    final confirmed = await confirmSave(
+      context,
+      title: _isEditing ? 'Kemaskini Hutang?' : 'Simpan Hutang?',
+      summary: ConfirmSummary(
+        icon: Icons.receipt_long_outlined,
+        title: _title.text.trim(),
+        subtitle: dueDate == null
+            ? _category.label
+            : '${_category.label} · sebelum ${dueDate.day}hb',
+        amount: amount,
+      ),
+    );
+    if (!confirmed || !mounted) return;
+
+    final vm = context.read<DebtViewModel>();
     final existing = widget.debt;
     if (existing == null) {
       vm.add(
@@ -85,8 +118,10 @@ class _DebtFormSheetState extends State<DebtFormSheet> {
     Navigator.of(context).pop();
   }
 
-  void _delete() {
+  Future<void> _delete() async {
     final debt = widget.debt!;
+    if (!await confirmDebtDelete(context, debt) || !mounted) return;
+
     final vm = context.read<DebtViewModel>()..remove(debt.id);
     Navigator.of(context).pop();
     showKoyakSnack(

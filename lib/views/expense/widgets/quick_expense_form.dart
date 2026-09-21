@@ -8,6 +8,7 @@ import '../../../models/expense_model.dart';
 import '../../../viewmodels/expense_view_model.dart';
 import '../../shared/category_style.dart';
 import '../../shared/widgets/amount_field.dart';
+import '../../shared/widgets/confirm_dialogs.dart';
 
 /// Under-3-seconds entry: type the amount, tap a category, hit enter.
 /// The title is optional and defaults to the category name.
@@ -37,8 +38,21 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    final amount = CurrencyFormatter.parse(_amount.text)!;
+    final confirmed = await confirmSave(
+      context,
+      title: 'Simpan Belanja?',
+      summary: ConfirmSummary(
+        icon: _category.icon,
+        title: ExpenseViewModel.resolveTitle(_title.text, _category),
+        subtitle: _category.label,
+        amount: amount,
+      ),
+    );
+    if (!confirmed || !mounted) return;
+
     final expense = await context.read<ExpenseViewModel>().add(
-      amount: CurrencyFormatter.parse(_amount.text)!,
+      amount: amount,
       category: _category,
       title: _title.text,
     );

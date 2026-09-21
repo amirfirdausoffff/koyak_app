@@ -75,16 +75,21 @@ class ExpenseViewModel extends PersistedListViewModel<ExpenseModel> {
     ]..sort((a, b) => b.amount.compareTo(a.amount));
   }
 
+  /// The title an expense is saved with: blank falls back to the category.
+  static String resolveTitle(String title, ExpenseCategory category) {
+    final name = title.trim();
+    return name.isEmpty ? category.label : name;
+  }
+
   /// Quick entry: a blank [title] falls back to the category name.
   Future<ExpenseModel> add({
     required double amount,
     required ExpenseCategory category,
     String title = '',
   }) async {
-    final name = title.trim();
     final expense = ExpenseModel(
       id: IdGenerator.next(),
-      title: name.isEmpty ? category.label : name,
+      title: resolveTitle(title, category),
       amount: amount,
       category: category,
       date: _clock(),

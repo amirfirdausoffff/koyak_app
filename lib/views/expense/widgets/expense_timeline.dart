@@ -8,6 +8,7 @@ import '../../../models/expense_day_group.dart';
 import '../../../models/expense_model.dart';
 import '../../../viewmodels/expense_view_model.dart';
 import '../../shared/category_style.dart';
+import '../../shared/widgets/confirm_dialogs.dart';
 import '../../shared/widgets/koyak_snack.dart';
 
 /// Expenses grouped by day, newest first. Swipe-to-delete unless
@@ -87,6 +88,19 @@ class _DismissibleExpenseTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.amber),
+      ),
+      confirmDismiss: (_) => confirmDelete(
+        context,
+        title: 'Padam Belanja?',
+        itemName: expense.title,
+        summary: ConfirmSummary(
+          icon: expense.category.icon,
+          title: expense.title,
+          subtitle:
+              '${expense.category.label} · '
+              '${DateFormatter.relativeDay(expense.date, DateTime.now())}',
+          amount: expense.amount,
+        ),
       ),
       onDismissed: (_) {
         vm.remove(expense.id);

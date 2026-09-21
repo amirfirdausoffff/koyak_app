@@ -7,6 +7,7 @@ import '../../core/utils/date_formatter.dart';
 import '../../models/income_model.dart';
 import '../../viewmodels/income_view_model.dart';
 import '../shared/widgets/amount_field.dart';
+import '../shared/widgets/confirm_dialogs.dart';
 import '../shared/widgets/koyak_sheet.dart';
 
 Future<void> showIncomeSheet(BuildContext context) => showKoyakSheet<void>(
@@ -37,6 +38,17 @@ class _IncomeSheetState extends State<IncomeSheet> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final amount = CurrencyFormatter.parse(_amount.text)!;
+    final confirmed = await confirmSave(
+      context,
+      title: 'Tambah Pendapatan?',
+      summary: ConfirmSummary(
+        icon: Icons.account_balance_wallet_outlined,
+        title: IncomeViewModel.resolveSource(_source.text),
+        subtitle: 'Dikira dalam ${DateFormatter.month(DateTime.now())}',
+        amount: amount,
+      ),
+    );
+    if (!confirmed || !mounted) return;
     await context.read<IncomeViewModel>().add(
       source: _source.text,
       amount: amount,
@@ -44,6 +56,23 @@ class _IncomeSheetState extends State<IncomeSheet> {
     if (!mounted) return;
     _source.clear();
     _amount.clear();
+  }
+
+  Future<void> _delete(IncomeModel income) async {
+    final confirmed = await confirmDelete(
+      context,
+      title: 'Padam Pendapatan?',
+      itemName: income.source,
+      summary: ConfirmSummary(
+        icon: Icons.account_balance_wallet_outlined,
+        title: income.source,
+        subtitle: DateFormatter.full(income.date),
+        amount: income.amount,
+      ),
+    );
+    if (confirmed && mounted) {
+      await context.read<IncomeViewModel>().remove(income.id);
+    }
   }
 
   @override
@@ -61,7 +90,7 @@ class _IncomeSheetState extends State<IncomeSheet> {
           )
         else ...[
           for (final income in incomes)
-            _IncomeRow(income: income, onDelete: () => vm.remove(income.id)),
+            _IncomeRow(income: income, onDelete: () => _delete(income)),
           const Divider(height: 24),
           Row(
             children: [
