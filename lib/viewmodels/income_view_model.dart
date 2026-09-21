@@ -39,12 +39,17 @@ class IncomeViewModel extends PersistedListViewModel<IncomeModel> {
         : months.reduce((a, b) => a.isBefore(b) ? a : b);
   }
 
-  Future<void> add({required String source, required double amount}) {
+  /// The source an income is saved with: blank means [defaultSource].
+  static String resolveSource(String source) {
     final name = source.trim();
+    return name.isEmpty ? defaultSource : name;
+  }
+
+  Future<void> add({required String source, required double amount}) {
     return upsert(
       IncomeModel(
         id: IdGenerator.next(),
-        source: name.isEmpty ? defaultSource : name,
+        source: resolveSource(source),
         amount: amount,
         date: _clock(),
       ),

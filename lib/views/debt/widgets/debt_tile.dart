@@ -30,6 +30,7 @@ class DebtTile extends StatelessWidget {
       key: ValueKey('debt-${debt.id}'),
       direction: DismissDirection.endToStart,
       background: const _DeleteBackground(),
+      confirmDismiss: (_) => confirmDebtDelete(context, debt),
       onDismissed: (_) {
         vm.remove(debt.id);
         showKoyakSnack(
