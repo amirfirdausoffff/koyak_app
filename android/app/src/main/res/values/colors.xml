@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand slate, same as the app background (AppColors.background). -->
+    <color name="ic_launcher_background">#12131C</color>
+    <color name="splash_background">#12131C</color>
+</resources>
