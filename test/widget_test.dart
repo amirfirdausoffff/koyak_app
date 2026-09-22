@@ -243,6 +243,35 @@ void main() {
     expect(find.text('Kemaskini Sumber'), findsNothing);
     expect(find.text('RM 12.00'), findsWidgets);
   });
+
+  testWidgets('adding a one-off debt', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hutang').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Tambah hutang'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Hutang Ali');
+    expect(find.text('Bulan terakhir bayar (pilihan)'), findsOneWidget);
+    await tester.tap(find.text('Sekali je'));
+    await tester.pumpAndSettle();
+    // A one-off debt has no last month.
+    expect(find.text('Bulan terakhir bayar (pilihan)'), findsNothing);
+    await tester.enterText(find.byType(TextFormField).at(1), '200');
+
+    final save = find.widgetWithText(FilledButton, 'Simpan');
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Simpan Hutang?'), findsOneWidget);
+    await tester.tap(_inDialog('Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hutang Ali'), findsOneWidget);
+    expect(find.text('Sekali bayar'), findsOneWidget);
+  });
 }
 
 Finder _inDialog(String text) =>

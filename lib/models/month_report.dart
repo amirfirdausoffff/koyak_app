@@ -38,6 +38,7 @@ class MonthReport {
     required this.summary,
     required this.incomes,
     required this.debts,
+    this.overdue = const [],
     required this.timeline,
     required this.categoryShares,
   });
@@ -45,7 +46,14 @@ class MonthReport {
   final YearMonth month;
   final CashflowSummary summary;
   final List<IncomeModel> incomes;
+
+  /// Debts counted in this month's baki.
   final List<DebtMonthStatus> debts;
+
+  /// One-off debts from earlier months still owed this month; they counted
+  /// in their own month.
+  final List<DebtMonthStatus> overdue;
+
   final List<ExpenseDayGroup> timeline;
   final List<CategoryShare> categoryShares;
 

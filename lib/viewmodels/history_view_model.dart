@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/cashflow_summary.dart';
+import '../models/debt_model.dart';
 import '../models/month_report.dart';
 import '../models/year_month.dart';
 import 'cashflow_ledger.dart';
@@ -59,17 +60,20 @@ class HistoryViewModel extends ChangeNotifier {
     month: month,
     summary: summaryFor(month),
     incomes: _incomes.incomesIn(month),
-    debts: [
-      for (final debt in _debts.debtsIn(month))
-        DebtMonthStatus(
-          debt: debt,
-          amount: debt.amountIn(month),
-          isPaid: debt.isPaidIn(month),
-        ),
+    debts: [for (final debt in _debts.debtsIn(month)) _statusOf(debt, month)],
+    overdue: [
+      for (final debt in _debts.overdueIn(month)) _statusOf(debt, month),
     ],
     timeline: _expenses.timelineFor(month),
     categoryShares: _expenses.categoryBreakdownFor(month),
   );
+
+  static DebtMonthStatus _statusOf(DebtModel debt, YearMonth month) =>
+      DebtMonthStatus(
+        debt: debt,
+        amount: debt.amountIn(month),
+        isPaid: debt.isPaidIn(month),
+      );
 
   @override
   void dispose() {

@@ -91,7 +91,19 @@ class MonthDetailView extends StatelessWidget {
                 child: Column(
                   children: [
                     for (final status in report.debts)
-                      _DebtStatusRow(status: status),
+                      _DebtStatusRow(status: status, month: month),
+                  ],
+                ),
+              ),
+            ],
+            if (report.overdue.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SectionCard(
+                title: 'Tertunggak',
+                child: Column(
+                  children: [
+                    for (final status in report.overdue)
+                      _DebtStatusRow(status: status, month: month),
                   ],
                 ),
               ),
@@ -186,9 +198,24 @@ class _ClosingBalance extends StatelessWidget {
 }
 
 class _DebtStatusRow extends StatelessWidget {
-  const _DebtStatusRow({required this.status});
+  const _DebtStatusRow({required this.status, required this.month});
 
   final DebtMonthStatus status;
+  final YearMonth month;
+
+  /// A one-off debt paid in a later month says when.
+  String get _label {
+    final debt = status.debt;
+    final paidLater = debt.paidMonth;
+    final text = status.isPaid
+        ? 'Dibayar'
+        : paidLater != null && month.isBefore(paidLater)
+        ? 'Dibayar ${DateFormatter.monthName(paidLater.start)}'
+        : 'Tak dibayar';
+    return debt.isOverdueIn(month)
+        ? 'Dari ${DateFormatter.monthName(debt.startMonth.start)} · $text'
+        : text;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,11 +245,14 @@ class _DebtStatusRow extends StatelessWidget {
                   children: [
                     CategoryTag(category: status.debt.category),
                     const SizedBox(width: 8),
-                    Text(
-                      paid ? 'Dibayar' : 'Tak dibayar',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: paid ? AppColors.textMuted : AppColors.amber,
+                    Flexible(
+                      child: Text(
+                        _label,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: paid ? AppColors.textMuted : AppColors.amber,
+                        ),
                       ),
                     ),
                   ],

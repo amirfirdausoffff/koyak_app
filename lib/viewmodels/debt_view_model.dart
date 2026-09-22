@@ -3,8 +3,9 @@ import '../models/debt_model.dart';
 import '../models/year_month.dart';
 import 'persisted_list_view_model.dart';
 
-/// Debts are monthly commitments. The getters without a month argument
-/// describe the current month, which starts unpaid automatically.
+/// Debts counted in the monthly baki, plus one-off debts still owed from
+/// earlier months. The getters without a month argument describe the
+/// current month, which starts unpaid automatically.
 class DebtViewModel extends PersistedListViewModel<DebtModel> {
   DebtViewModel(super.repository, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
@@ -15,6 +16,10 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
 
   /// This month's debts: unpaid first, then nearest due date, then title.
   List<DebtModel> get debts => debtsIn(currentMonth);
+
+  /// One-off debts from earlier months, still owed when this month began.
+  /// They are not part of this month's totals.
+  List<DebtModel> get overdue => overdueIn(currentMonth);
 
   int get count => debts.length;
 
@@ -36,8 +41,13 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
       .where((d) => d.category == category)
       .fold(0, (sum, d) => sum + d.amountIn(currentMonth));
 
+  /// Debts counted in [month]'s baki.
   List<DebtModel> debtsIn(YearMonth month) =>
       items.where((d) => d.isActiveIn(month)).toList()
+        ..sort((a, b) => _byPriority(a, b, month));
+
+  List<DebtModel> overdueIn(YearMonth month) =>
+      items.where((d) => d.isOverdueIn(month)).toList()
         ..sort((a, b) => _byPriority(a, b, month));
 
   double totalIn(YearMonth month) =>
@@ -52,7 +62,9 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
     required String title,
     required double amount,
     required DebtCategory category,
+    DebtKind kind = DebtKind.monthly,
     DateTime? dueDate,
+    YearMonth? lastMonth,
   }) => upsert(
     DebtModel(
       id: IdGenerator.next(),
@@ -60,7 +72,9 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
       amount: amount,
       category: category,
       createdAt: _clock(),
+      kind: kind,
       dueDate: dueDate,
+      lastMonth: kind == DebtKind.monthly ? lastMonth : null,
     ),
   );
 

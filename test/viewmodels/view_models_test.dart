@@ -121,6 +121,71 @@ void main() {
     });
   });
 
+  group('DebtViewModel kinds', () {
+    late InMemoryRepository<DebtModel> repo;
+    late DebtViewModel vm;
+
+    setUp(() async {
+      repo = InMemoryRepository([
+        DebtModel(
+          id: 'kereta',
+          title: 'Kereta',
+          amount: 800,
+          category: DebtCategory.halal,
+          createdAt: DateTime(2026, 9, 1),
+          lastMonth: const YearMonth(2026, 10),
+        ),
+        DebtModel(
+          id: 'ali',
+          title: 'Hutang Ali',
+          amount: 200,
+          category: DebtCategory.risky,
+          createdAt: DateTime(2026, 9, 2),
+          kind: DebtKind.once,
+        ),
+      ]);
+      vm = DebtViewModel(repo, clock: clock);
+      await vm.load();
+    });
+
+    test('an unpaid one-off debt is tertunggak next month, not in totals', () {
+      now = DateTime(2026, 10, 1);
+      expect(vm.debts.map((d) => d.id), ['kereta']);
+      expect(vm.overdue.map((d) => d.id), ['ali']);
+      expect(vm.totalAmount, 800);
+    });
+
+    test('paying it this month keeps it listed, then it is gone', () async {
+      now = DateTime(2026, 10, 1);
+      await vm.togglePaid('ali');
+      expect(vm.isPaid(vm.overdue.single), isTrue);
+
+      now = DateTime(2026, 11, 1);
+      expect(vm.overdue, isEmpty);
+    });
+
+    test('a monthly debt disappears after its last month', () {
+      now = DateTime(2026, 11, 1);
+      expect(vm.debts, isEmpty);
+      expect(vm.debtsIn(const YearMonth(2026, 10)).map((d) => d.id), [
+        'kereta',
+      ]);
+    });
+
+    test('add stores the kind and ignores a last month for one-offs', () async {
+      await vm.add(
+        title: 'Pinjam Abu',
+        amount: 50,
+        category: DebtCategory.risky,
+        kind: DebtKind.once,
+        lastMonth: const YearMonth(2027, 1),
+      );
+      final saved = repo.saved.firstWhere((d) => d.title == 'Pinjam Abu');
+      expect(saved.kind, DebtKind.once);
+      expect(saved.lastMonth, isNull);
+    });
+  });
+
   group('ExpenseViewModel', () {
     late ExpenseViewModel vm;
 
@@ -254,8 +319,28 @@ void main() {
       final report = history.reportFor(const YearMonth(2026, 9));
       expect(report.incomes.single.source, 'Gaji');
       expect(report.debts.single.isPaid, isTrue);
+      expect(report.overdue, isEmpty);
       expect(report.expenseCount, 1);
       expect(report.categoryShares.single.category, ExpenseCategory.minyak);
+    });
+
+    test('month report lists tertunggak one-offs separately', () async {
+      await debts.add(
+        title: 'Hutang Ali',
+        amount: 200,
+        category: DebtCategory.risky,
+        kind: DebtKind.once,
+      );
+      now = DateTime(2026, 11, 2);
+
+      final sep = history.reportFor(const YearMonth(2026, 9));
+      expect(sep.debts.map((d) => d.debt.title), contains('Hutang Ali'));
+      expect(sep.overdue, isEmpty);
+
+      final oct = history.reportFor(const YearMonth(2026, 10));
+      expect(oct.debts.map((d) => d.debt.title), ['PTPTN']);
+      expect(oct.overdue.single.debt.title, 'Hutang Ali');
+      expect(oct.overdue.single.isPaid, isFalse);
     });
   });
 
@@ -351,6 +436,49 @@ void main() {
       // August had only the debt — it must not open September in the red.
       expect(ledger.carriedInto(const YearMonth(2026, 9)), 0);
       expect(ledger.carriedInto(const YearMonth(2026, 10)), 4000 - 800);
+    });
+
+    test('a tertunggak one-off debt is taken off the baki only once', () async {
+      await build(
+        incomeList: [pay(DateTime(2026, 9, 1), 1000)],
+        debtList: [
+          DebtModel(
+            id: 'ali',
+            title: 'Hutang Ali',
+            amount: 200,
+            category: DebtCategory.risky,
+            createdAt: DateTime(2026, 9, 2),
+            kind: DebtKind.once,
+            payments: const {'2026-11': 200}, // finally paid in November
+          ),
+        ],
+      );
+      expect(ledger.summaryFor(const YearMonth(2026, 9)).totalDebt, 200);
+      for (final month in const [YearMonth(2026, 10), YearMonth(2026, 11)]) {
+        final summary = ledger.summaryFor(month);
+        expect(summary.totalDebt, 0);
+        expect(summary.netRemaining, 800);
+      }
+    });
+
+    test('a monthly debt stops costing after its last month', () async {
+      await build(
+        incomeList: [pay(DateTime(2026, 9, 1), 3000)],
+        debtList: [
+          DebtModel(
+            id: 'k',
+            title: 'Kereta',
+            amount: 500,
+            category: DebtCategory.halal,
+            createdAt: DateTime(2026, 9, 1),
+            lastMonth: const YearMonth(2026, 10),
+          ),
+        ],
+      );
+      expect(ledger.summaryFor(const YearMonth(2026, 10)).totalDebt, 500);
+      final nov = ledger.summaryFor(const YearMonth(2026, 11));
+      expect(nov.totalDebt, 0);
+      expect(nov.netRemaining, 2000);
     });
   });
 
