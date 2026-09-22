@@ -14,6 +14,8 @@ abstract final class DateFormatter {
     AppStrings.dateLocale,
   );
   static final _monthName = DateFormat.MMMM(AppStrings.dateLocale);
+  static final _monthShort = DateFormat.MMM(AppStrings.dateLocale);
+  static final _monthYearShort = DateFormat('MMM yyyy', AppStrings.dateLocale);
   static final _time = DateFormat('h:mm a', AppStrings.dateLocale);
   static final _stamp = DateFormat('dd/MM/yyyy, hh:mm a', 'en_US');
 
@@ -22,6 +24,12 @@ abstract final class DateFormatter {
 
   /// `Ogos`
   static String monthName(DateTime date) => _monthName.format(date);
+
+  /// `Okt`
+  static String monthShort(DateTime date) => _monthShort.format(date);
+
+  /// `Dis 2027`
+  static String monthYearShort(DateTime date) => _monthYearShort.format(date);
 
   /// `Isnin, 21 September 2026`
   static String longDay(DateTime date) => _longDay.format(date);

@@ -55,21 +55,18 @@ class HistoryViewModel extends ChangeNotifier {
   /// Includes the baki carried in from the month before.
   CashflowSummary summaryFor(YearMonth month) => _ledger.summaryFor(month);
 
-  MonthReport reportFor(YearMonth month) => MonthReport(
-    month: month,
-    summary: summaryFor(month),
-    incomes: _incomes.incomesIn(month),
-    debts: [
-      for (final debt in _debts.debtsIn(month))
-        DebtMonthStatus(
-          debt: debt,
-          amount: debt.amountIn(month),
-          isPaid: debt.isPaidIn(month),
-        ),
-    ],
-    timeline: _expenses.timelineFor(month),
-    categoryShares: _expenses.categoryBreakdownFor(month),
-  );
+  MonthReport reportFor(YearMonth month) {
+    final debts = _debts.monthOf(month);
+    return MonthReport(
+      month: month,
+      summary: summaryFor(month),
+      incomes: _incomes.incomesIn(month),
+      debts: debts.debts,
+      overdue: debts.overdue,
+      timeline: _expenses.timelineFor(month),
+      categoryShares: _expenses.categoryBreakdownFor(month),
+    );
+  }
 
   @override
   void dispose() {

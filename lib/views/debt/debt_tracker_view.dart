@@ -10,6 +10,7 @@ import '../shared/category_style.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/page_header.dart';
 import '../shared/widgets/section_card.dart';
+import 'debt_history_view.dart';
 import 'widgets/debt_form_sheet.dart';
 import 'widgets/debt_tile.dart';
 
@@ -20,6 +21,7 @@ class DebtTrackerView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<DebtViewModel>();
     final debts = vm.debts;
+    final overdue = vm.overdue;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -38,19 +40,45 @@ class DebtTrackerView extends StatelessWidget {
               subtitle:
                   'Bayaran ${DateFormatter.month(vm.currentMonth.start)}. '
                   'Bulan depan reset sendiri.',
+              trailing: IconButton(
+                onPressed: () => DebtHistoryView.open(context),
+                tooltip: 'Sejarah hutang',
+                icon: const Icon(
+                  Icons.history_rounded,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
-            if (debts.isEmpty)
+            if (debts.isEmpty && overdue.isEmpty)
               const EmptyState(
                 icon: Icons.task_alt_rounded,
                 title: 'Tiada hutang direkod',
                 message:
-                    'Tambah komitmen bulanan — PTPTN, kereta, kad kredit, '
-                    'hutang kawan.',
-              )
-            else ...[
+                    'Tambah komitmen bulanan (PTPTN, kereta, kad kredit) '
+                    'atau hutang sekali bayar (hutang kawan).',
+              ),
+            if (debts.isNotEmpty) ...[
               _DebtProgressCard(vm: vm),
               const SizedBox(height: 20),
               for (final debt in debts)
+                Padding(
+                  key: ValueKey(debt.id),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: DebtTile(debt: debt),
+                ),
+            ],
+            if (overdue.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.only(top: debts.isEmpty ? 0 : 16),
+                child: const _SectionHeading(
+                  title: 'Tertunggak',
+                  subtitle:
+                      'Hutang sekali bayar dari bulan lepas. Dah ditolak '
+                      'dari baki bulan asal, jadi tak dikira lagi bulan ni.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final debt in overdue)
                 Padding(
                   key: ValueKey(debt.id),
                   padding: const EdgeInsets.only(bottom: 8),
@@ -131,6 +159,33 @@ class _DebtProgressCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
+      ],
     );
   }
 }

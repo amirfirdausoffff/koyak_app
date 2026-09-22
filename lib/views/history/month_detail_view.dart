@@ -11,8 +11,8 @@ import '../analytics/widgets/category_bar_chart.dart';
 import '../analytics/widgets/category_breakdown_list.dart';
 import '../analytics/widgets/income_split_bar.dart';
 import '../dashboard/widgets/stat_grid.dart';
+import '../debt/widgets/debt_status_row.dart';
 import '../expense/widgets/expense_timeline.dart';
-import '../shared/widgets/category_tag.dart';
 import '../shared/widgets/section_card.dart';
 
 /// Read-only report of one finished month.
@@ -91,7 +91,19 @@ class MonthDetailView extends StatelessWidget {
                 child: Column(
                   children: [
                     for (final status in report.debts)
-                      _DebtStatusRow(status: status),
+                      DebtStatusRow(status: status, month: month),
+                  ],
+                ),
+              ),
+            ],
+            if (report.overdue.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SectionCard(
+                title: 'Tertunggak',
+                child: Column(
+                  children: [
+                    for (final status in report.overdue)
+                      DebtStatusRow(status: status, month: month),
                   ],
                 ),
               ),
@@ -178,61 +190,6 @@ class _ClosingBalance extends StatelessWidget {
               fontSize: 12,
               color: summary.isKoyak ? AppColors.amber : AppColors.textMuted,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DebtStatusRow extends StatelessWidget {
-  const _DebtStatusRow({required this.status});
-
-  final DebtMonthStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final paid = status.isPaid;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(
-            paid ? Icons.check_circle_rounded : Icons.cancel_outlined,
-            size: 20,
-            color: paid ? AppColors.green : AppColors.amber,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  status.debt.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    CategoryTag(category: status.debt.category),
-                    const SizedBox(width: 8),
-                    Text(
-                      paid ? 'Dibayar' : 'Tak dibayar',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: paid ? AppColors.textMuted : AppColors.amber,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Text(
-            status.amount.asRinggit,
-            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ],
       ),

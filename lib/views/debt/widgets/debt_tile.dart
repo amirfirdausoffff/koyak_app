@@ -25,6 +25,7 @@ class DebtTile extends StatelessWidget {
     final isPaid = vm.isPaid(debt);
     final radius = BorderRadius.circular(16);
     final due = _DueLabel.of(debt, isPaid: isPaid, now: DateTime.now());
+    final plan = _PlanLabel.of(debt, month: vm.currentMonth, isPaid: isPaid);
 
     return Dismissible(
       key: ValueKey('debt-${debt.id}'),
@@ -95,6 +96,15 @@ class DebtTile extends StatelessWidget {
                           ],
                         ],
                       ),
+                      if (plan != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          plan.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: plan.color),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -185,6 +195,45 @@ class _DueLabel {
     }
     return _DueLabel(
       'Sebelum ${DateFormatter.short(dueDate)}',
+      AppColors.textMuted,
+    );
+  }
+}
+
+/// How long the debt runs: one-off, tertunggak, or payments left.
+class _PlanLabel {
+  const _PlanLabel(this.text, this.color);
+
+  final String text;
+  final Color color;
+
+  static _PlanLabel? of(
+    DebtModel debt, {
+    required YearMonth month,
+    required bool isPaid,
+  }) {
+    if (debt.isOverdueIn(month)) {
+      final from = DateFormatter.monthName(debt.startMonth.start);
+      return isPaid
+          ? _PlanLabel('Hutang $from', AppColors.textMuted)
+          : _PlanLabel('Tertunggak dari $from', AppColors.amber);
+    }
+    if (debt.isOnce) {
+      return const _PlanLabel('Sekali bayar', AppColors.textMuted);
+    }
+
+    final last = debt.lastMonth;
+    final left = debt.paymentsLeftIn(month);
+    if (last == null || left == null) return null;
+    if (last == month) {
+      return _PlanLabel(
+        isPaid ? 'Hutang selesai!' : 'Bayaran terakhir',
+        AppColors.green,
+      );
+    }
+    return _PlanLabel(
+      'Hingga ${DateFormatter.monthYearShort(last.start)} · '
+      '$left bayaran lagi',
       AppColors.textMuted,
     );
   }

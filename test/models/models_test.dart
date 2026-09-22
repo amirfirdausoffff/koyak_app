@@ -39,8 +39,27 @@ void main() {
         category: DebtCategory.risky,
         createdAt: DateTime(2026, 9, 1),
       );
+      final ending = DebtModel(
+        id: 'd3',
+        title: 'Kereta',
+        amount: 800,
+        category: DebtCategory.halal,
+        createdAt: DateTime(2026, 9, 1),
+        lastMonth: const YearMonth(2027, 12),
+      );
+      final once = DebtModel(
+        id: 'd4',
+        title: 'Hutang Ali',
+        amount: 200,
+        category: DebtCategory.risky,
+        createdAt: DateTime(2026, 9, 1),
+        kind: DebtKind.once,
+        dueDate: DateTime(2026, 10, 5),
+      );
       expect(DebtModel.fromJson(debt.toJson()), debt);
       expect(DebtModel.fromJson(noDate.toJson()), noDate);
+      expect(DebtModel.fromJson(ending.toJson()), ending);
+      expect(DebtModel.fromJson(once.toJson()), once);
     });
 
     test('ExpenseModel', () {
@@ -86,6 +105,8 @@ void main() {
     final thisMonth = YearMonth.of(DateTime.now());
     expect(legacy.isPaidIn(thisMonth), isTrue);
     expect(legacy.isActiveIn(const YearMonth(2020, 1)), isTrue);
+    expect(legacy.kind, DebtKind.monthly);
+    expect(legacy.lastMonth, isNull);
   });
 
   test('YearMonth keys and ordering', () {
@@ -131,6 +152,136 @@ void main() {
       expect(debt.dueDateIn(sep), DateTime(2026, 9, 30));
       expect(debt.dueDateIn(const YearMonth(2027, 2)), DateTime(2027, 2, 28));
       expect(debt.daysUntilDue(DateTime(2026, 10, 29)), 2);
+    });
+  });
+
+  group('DebtModel with a last month', () {
+    final debt = DebtModel(
+      id: 'd',
+      title: 'Kereta',
+      amount: 800,
+      category: DebtCategory.halal,
+      createdAt: DateTime(2026, 9, 10),
+      lastMonth: const YearMonth(2026, 12),
+    );
+    const dec = YearMonth(2026, 12);
+
+    test('counts through its last month, then stops', () {
+      expect(debt.isActiveIn(sep), isTrue);
+      expect(debt.isActiveIn(dec), isTrue);
+      expect(debt.isActiveIn(const YearMonth(2027, 1)), isFalse);
+    });
+
+    test('payments left include this month until it is paid', () {
+      expect(debt.paymentsLeftIn(sep), 4);
+      expect(debt.togglePaidIn(sep).paymentsLeftIn(sep), 3);
+      expect(debt.togglePaidIn(dec).paymentsLeftIn(dec), 0);
+      expect(debt.copyWith(clearLastMonth: true).paymentsLeftIn(sep), isNull);
+    });
+  });
+
+  group('DebtModel paid once', () {
+    const nov = YearMonth(2026, 11);
+    final debt = DebtModel(
+      id: 'o',
+      title: 'Hutang Ali',
+      amount: 200,
+      category: DebtCategory.risky,
+      createdAt: DateTime(2026, 9, 10),
+      kind: DebtKind.once,
+      dueDate: DateTime(2026, 10, 5),
+    );
+
+    test('counts in its start month only', () {
+      expect(debt.isActiveIn(sep), isTrue);
+      expect(debt.isActiveIn(oct), isFalse);
+      expect(debt.isActiveIn(const YearMonth(2026, 8)), isFalse);
+    });
+
+    test('paid in its own month, it never becomes tertunggak', () {
+      final paid = debt.togglePaidIn(sep);
+      expect(paid.isPaidIn(sep), isTrue);
+      expect(paid.isOverdueIn(oct), isFalse);
+    });
+
+    test('unpaid, it stays tertunggak until the month it is paid', () {
+      expect(debt.isOverdueIn(sep), isFalse);
+      expect(debt.isOverdueIn(oct), isTrue);
+      expect(debt.isOverdueIn(nov), isTrue);
+
+      final paidInOct = debt.togglePaidIn(oct);
+      expect(paidInOct.paidMonth, oct);
+      expect(paidInOct.isPaidIn(sep), isFalse);
+      expect(paidInOct.isPaidIn(oct), isTrue);
+      expect(paidInOct.isOverdueIn(oct), isTrue); // still listed, ticked
+      expect(paidInOct.isOverdueIn(nov), isFalse);
+      expect(paidInOct.amountIn(sep), 200);
+    });
+
+    test('ticking again undoes the payment', () {
+      final undone = debt.togglePaidIn(oct).togglePaidIn(oct);
+      expect(undone.payments, isEmpty);
+      expect(undone.isOverdueIn(nov), isTrue);
+    });
+
+    test('keeps its own due date instead of repeating monthly', () {
+      expect(debt.dueDateIn(nov), DateTime(2026, 10, 5));
+      expect(debt.daysUntilDue(DateTime(2026, 10, 8)), -3);
+    });
+
+    test('an ended one-off debt is no longer tertunggak', () {
+      final ended = debt.endedOn(DateTime(2026, 10, 2));
+      expect(ended.isActiveIn(sep), isTrue);
+      expect(ended.isOverdueIn(oct), isFalse);
+    });
+  });
+
+  group('DebtModel end of life', () {
+    const aug = YearMonth(2026, 8);
+
+    DebtModel monthly({YearMonth? lastMonth, DateTime? endedAt}) => DebtModel(
+      id: 'm',
+      title: 'Kereta',
+      amount: 800,
+      category: DebtCategory.halal,
+      createdAt: DateTime(2026, 8, 1),
+      lastMonth: lastMonth,
+      endedAt: endedAt,
+      payments: const {'2026-08': 800, '2026-09': 800},
+    );
+
+    test('final month is the last month, or the month before removal', () {
+      expect(monthly(lastMonth: sep).finalMonth, sep);
+      expect(monthly(endedAt: DateTime(2026, 10, 2)).finalMonth, sep);
+      expect(
+        monthly(lastMonth: oct, endedAt: DateTime(2026, 10, 2)).finalMonth,
+        sep,
+      );
+      expect(monthly().finalMonth, isNull);
+    });
+
+    test('scheduled payments and total paid', () {
+      final debt = monthly(lastMonth: sep);
+      expect(debt.scheduledPayments, 2);
+      expect(debt.totalPaid, 1600);
+      expect(monthly().scheduledPayments, isNull);
+    });
+
+    test('a one-off or legacy debt has no payment schedule', () {
+      final once = DebtModel(
+        id: 'o',
+        title: 'Ali',
+        amount: 50,
+        category: DebtCategory.risky,
+        createdAt: DateTime(2026, 8, 3),
+        kind: DebtKind.once,
+      );
+      expect(once.finalMonth, aug);
+      expect(once.scheduledPayments, isNull);
+
+      final legacy = DebtModel.fromMap({'id': 'l', 'amount': 100});
+      expect(legacy.isLegacy, isTrue);
+      expect(legacy.copyWith(lastMonth: sep).scheduledPayments, isNull);
     });
   });
 }

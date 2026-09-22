@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:koyak/app.dart';
 import 'package:koyak/app_dependencies.dart';
+import 'package:koyak/models/debt_model.dart';
 import 'package:koyak/models/expense_model.dart';
 import 'package:koyak/models/income_model.dart';
+import 'package:koyak/models/year_month.dart';
 
 import 'support/fake_backup_repository.dart';
 import 'support/in_memory_repository.dart';
@@ -15,10 +17,11 @@ void main() {
   Widget buildApp({
     List<IncomeModel> incomes = const [],
     List<ExpenseModel> expenses = const [],
+    List<DebtModel> debts = const [],
   }) => KoyakApp(
     dependencies: AppDependencies(
       incomeRepository: InMemoryRepository(incomes),
-      debtRepository: InMemoryRepository(),
+      debtRepository: InMemoryRepository(debts),
       expenseRepository: InMemoryRepository(expenses),
       backupRepository: FakeBackupRepository(),
     ),
@@ -242,6 +245,70 @@ void main() {
     // Back on the sources list with the new balance.
     expect(find.text('Kemaskini Sumber'), findsNothing);
     expect(find.text('RM 12.00'), findsWidgets);
+  });
+
+  testWidgets('adding a one-off debt', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hutang').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Tambah hutang'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).first, 'Hutang Ali');
+    expect(find.text('Bulan terakhir bayar (pilihan)'), findsOneWidget);
+    await tester.tap(find.text('Sekali je'));
+    await tester.pumpAndSettle();
+    // A one-off debt has no last month.
+    expect(find.text('Bulan terakhir bayar (pilihan)'), findsNothing);
+    await tester.enterText(find.byType(TextFormField).at(1), '200');
+
+    final save = find.widgetWithText(FilledButton, 'Simpan');
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.text('Simpan Hutang?'), findsOneWidget);
+    await tester.tap(_inDialog('Simpan'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hutang Ali'), findsOneWidget);
+    expect(find.text('Sekali bayar'), findsOneWidget);
+  });
+
+  testWidgets('debt history shows past months and finished debts', (
+    tester,
+  ) async {
+    final thisMonth = YearMonth.of(DateTime.now());
+    final lastMonth = thisMonth.previous;
+    final twoAgo = lastMonth.previous;
+    await tester.pumpWidget(
+      buildApp(
+        debts: [
+          DebtModel(
+            id: 'k',
+            title: 'Kereta',
+            amount: 800,
+            category: DebtCategory.halal,
+            createdAt: twoAgo.start,
+            lastMonth: lastMonth,
+            payments: {twoAgo.key: 800, lastMonth.key: 800},
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hutang').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Kereta'), findsNothing); // past its last month
+
+    await tester.tap(find.byTooltip('Sejarah hutang'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sejarah Hutang'), findsOneWidget);
+    expect(find.text('1/1 dibayar'), findsNWidgets(2));
+    await tester.scrollUntilVisible(find.text('Hutang Selesai'), 200);
+    expect(find.textContaining('2/2 bayaran'), findsOneWidget);
+    expect(find.text('RM 1,600.00'), findsOneWidget);
   });
 }
 
