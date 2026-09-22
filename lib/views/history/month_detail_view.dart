@@ -43,7 +43,7 @@ class MonthDetailView extends StatelessWidget {
             StatGrid(
               tiles: [
                 StatTileData(
-                  label: 'Gaji',
+                  label: 'Duit',
                   amount: summary.totalIncome,
                   caption: '${report.incomes.length} sumber',
                   icon: Icons.account_balance_wallet_outlined,
@@ -99,7 +99,7 @@ class MonthDetailView extends StatelessWidget {
             if (report.incomes.isNotEmpty) ...[
               const SizedBox(height: 12),
               SectionCard(
-                title: 'Pendapatan',
+                title: 'Sumber Duit',
                 child: Column(
                   children: [
                     for (final income in report.incomes)

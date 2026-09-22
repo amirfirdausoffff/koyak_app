@@ -88,15 +88,15 @@ class _NoIncomeCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Masukkan gaji bulan ni dulu. Lepas tu Koyak kira berapa '
-            'kau boleh belanja sehari.',
+            'Masukkan duit kau dulu: gaji, baki bank, e\u2011wallet. Lepas tu '
+            'Koyak kira berapa kau boleh belanja sehari.',
             style: textTheme.bodyLarge?.copyWith(height: 1.45),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: onAddIncome,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Masukkan Gaji'),
+            label: const Text('Masukkan Duit'),
           ),
           const SizedBox(height: 4),
           TextButton.icon(
@@ -122,8 +122,8 @@ class _BudgetGoneCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final message = summary.isKoyak
         ? 'Kau dah terlebih ${summary.netRemaining.abs().asRinggit}. '
-              'Tahan belanja sampai gaji masuk.'
-        : 'Baki dah habis. Tahan belanja sampai gaji masuk.';
+              'Tahan belanja sampai duit masuk.'
+        : 'Baki dah habis. Tahan belanja sampai duit masuk.';
     return SectionCard(
       borderColor: AppColors.amber.withValues(alpha: 0.5),
       child: Column(

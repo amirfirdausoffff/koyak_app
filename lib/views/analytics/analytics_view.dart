@@ -40,7 +40,7 @@ class AnalyticsView extends StatelessWidget {
                 : null,
             child: summary.available > 0
                 ? IncomeSplitBar(summary: summary)
-                : const _Hint('Masukkan gaji dulu untuk tengok pecahan.'),
+                : const _Hint('Masukkan duit dulu untuk tengok pecahan.'),
           ),
           const SizedBox(height: 12),
           SectionCard(

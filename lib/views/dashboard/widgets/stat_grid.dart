@@ -21,7 +21,7 @@ class StatTileData {
   final VoidCallback? onTap;
 }
 
-/// Compact row of headline numbers: Gaji, Hutang, Belanja.
+/// Compact row of headline numbers: Duit, Hutang, Belanja.
 class StatGrid extends StatelessWidget {
   const StatGrid({super.key, required this.tiles});
 

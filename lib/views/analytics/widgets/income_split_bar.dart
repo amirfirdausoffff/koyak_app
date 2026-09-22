@@ -63,7 +63,7 @@ class IncomeSplitBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Duit ada ${available.asRinggit} = gaji '
+              'Duit ada ${available.asRinggit} = duit masuk '
               '${summary.totalIncome.asRinggit} + baki bulan lepas '
               '${summary.carriedForward.asRinggit}',
               style: const TextStyle(fontSize: 12, color: AppColors.textMuted),

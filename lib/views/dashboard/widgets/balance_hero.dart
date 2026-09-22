@@ -68,7 +68,7 @@ class BalanceHero extends StatelessWidget {
 
   String _formulaCaption() {
     final carried = summary.carriedForward;
-    if (carried == 0) return 'Gaji − Hutang − Belanja';
+    if (carried == 0) return 'Duit − Hutang − Belanja';
     final now = DateTime.now();
     final lastMonth = DateFormatter.monthName(
       DateTime(now.year, now.month - 1),
