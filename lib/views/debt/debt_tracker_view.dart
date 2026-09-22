@@ -10,6 +10,7 @@ import '../shared/category_style.dart';
 import '../shared/widgets/empty_state.dart';
 import '../shared/widgets/page_header.dart';
 import '../shared/widgets/section_card.dart';
+import 'debt_history_view.dart';
 import 'widgets/debt_form_sheet.dart';
 import 'widgets/debt_tile.dart';
 
@@ -39,6 +40,14 @@ class DebtTrackerView extends StatelessWidget {
               subtitle:
                   'Bayaran ${DateFormatter.month(vm.currentMonth.start)}. '
                   'Bulan depan reset sendiri.',
+              trailing: IconButton(
+                onPressed: () => DebtHistoryView.open(context),
+                tooltip: 'Sejarah hutang',
+                icon: const Icon(
+                  Icons.history_rounded,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ),
             if (debts.isEmpty && overdue.isEmpty)
               const EmptyState(

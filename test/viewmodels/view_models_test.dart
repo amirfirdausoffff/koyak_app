@@ -186,6 +186,83 @@ void main() {
     });
   });
 
+  group('DebtViewModel history', () {
+    late DebtViewModel vm;
+
+    setUp(() async {
+      now = DateTime(2026, 11, 10);
+      vm = DebtViewModel(
+        InMemoryRepository([
+          DebtModel(
+            id: 'kereta',
+            title: 'Kereta',
+            amount: 800,
+            category: DebtCategory.halal,
+            createdAt: DateTime(2026, 8, 1),
+            lastMonth: const YearMonth(2026, 9),
+            payments: const {'2026-08': 800, '2026-09': 800},
+          ),
+          DebtModel(
+            id: 'ali',
+            title: 'Hutang Ali',
+            amount: 200,
+            category: DebtCategory.risky,
+            createdAt: DateTime(2026, 9, 5),
+            kind: DebtKind.once,
+            payments: const {'2026-10': 200},
+          ),
+          DebtModel(
+            id: 'netflix',
+            title: 'Netflix',
+            amount: 55,
+            category: DebtCategory.halal,
+            createdAt: DateTime(2026, 10, 1),
+            endedAt: DateTime(2026, 11, 2),
+            payments: const {'2026-10': 55},
+          ),
+          DebtModel(
+            id: 'ptptn',
+            title: 'PTPTN',
+            amount: 150,
+            category: DebtCategory.halal,
+            createdAt: DateTime(2026, 8, 1),
+          ),
+          DebtModel.fromMap({'id': 'legacy', 'title': 'Lama', 'amount': 10}),
+        ]),
+        clock: clock,
+      );
+      await vm.load();
+    });
+
+    test('past months start at the first real debt, not legacy 2000', () {
+      expect(vm.pastMonths, const [
+        YearMonth(2026, 10),
+        YearMonth(2026, 9),
+        YearMonth(2026, 8),
+      ]);
+    });
+
+    test('a month shows what counted, what was paid, and tertunggak', () {
+      final oct = vm.monthOf(const YearMonth(2026, 10));
+      expect(
+        oct.debts.map((d) => d.debt.id),
+        unorderedEquals(['netflix', 'ptptn', 'legacy']),
+      );
+      expect(oct.paidCount, 1);
+      expect(oct.paidTotal, 55);
+      expect(oct.total, 215);
+      expect(oct.overdue.single.debt.id, 'ali');
+      expect(oct.overdue.single.isPaid, isTrue);
+    });
+
+    test('finished debts: ended, paid off, or removed; newest first', () {
+      final ids = vm.finished.map((d) => d.id).toList();
+      // Ali (paid) and Netflix (removed) both finished in October.
+      expect(ids.take(2), unorderedEquals(['netflix', 'ali']));
+      expect(ids.last, 'kereta'); // last month September
+    });
+  });
+
   group('ExpenseViewModel', () {
     late ExpenseViewModel vm;
 

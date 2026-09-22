@@ -235,4 +235,53 @@ void main() {
       expect(ended.isOverdueIn(oct), isFalse);
     });
   });
+
+  group('DebtModel end of life', () {
+    const aug = YearMonth(2026, 8);
+
+    DebtModel monthly({YearMonth? lastMonth, DateTime? endedAt}) => DebtModel(
+      id: 'm',
+      title: 'Kereta',
+      amount: 800,
+      category: DebtCategory.halal,
+      createdAt: DateTime(2026, 8, 1),
+      lastMonth: lastMonth,
+      endedAt: endedAt,
+      payments: const {'2026-08': 800, '2026-09': 800},
+    );
+
+    test('final month is the last month, or the month before removal', () {
+      expect(monthly(lastMonth: sep).finalMonth, sep);
+      expect(monthly(endedAt: DateTime(2026, 10, 2)).finalMonth, sep);
+      expect(
+        monthly(lastMonth: oct, endedAt: DateTime(2026, 10, 2)).finalMonth,
+        sep,
+      );
+      expect(monthly().finalMonth, isNull);
+    });
+
+    test('scheduled payments and total paid', () {
+      final debt = monthly(lastMonth: sep);
+      expect(debt.scheduledPayments, 2);
+      expect(debt.totalPaid, 1600);
+      expect(monthly().scheduledPayments, isNull);
+    });
+
+    test('a one-off or legacy debt has no payment schedule', () {
+      final once = DebtModel(
+        id: 'o',
+        title: 'Ali',
+        amount: 50,
+        category: DebtCategory.risky,
+        createdAt: DateTime(2026, 8, 3),
+        kind: DebtKind.once,
+      );
+      expect(once.finalMonth, aug);
+      expect(once.scheduledPayments, isNull);
+
+      final legacy = DebtModel.fromMap({'id': 'l', 'amount': 100});
+      expect(legacy.isLegacy, isTrue);
+      expect(legacy.copyWith(lastMonth: sep).scheduledPayments, isNull);
+    });
+  });
 }

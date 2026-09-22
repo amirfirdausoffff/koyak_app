@@ -1,5 +1,6 @@
 import '../core/utils/id_generator.dart';
 import '../models/debt_model.dart';
+import '../models/month_report.dart';
 import '../models/year_month.dart';
 import 'persisted_list_view_model.dart';
 
@@ -53,6 +54,40 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
   double totalIn(YearMonth month) =>
       debtsIn(month).fold(0, (sum, d) => sum + d.amountIn(month));
 
+  /// Paid status of every debt listed in [month].
+  DebtMonth monthOf(YearMonth month) => DebtMonth(
+    month: month,
+    debts: [for (final debt in debtsIn(month)) _statusOf(debt, month)],
+    overdue: [for (final debt in overdueIn(month)) _statusOf(debt, month)],
+  );
+
+  /// Finished months that had any debt listed, newest first.
+  List<YearMonth> get pastMonths {
+    final starts = [
+      for (final debt in items)
+        if (!debt.isLegacy) debt.startMonth,
+      ...monthsWithData,
+    ];
+    if (starts.isEmpty) return const [];
+    final first = starts.reduce((a, b) => a.isBefore(b) ? a : b);
+    return [
+      for (var m = currentMonth.previous; !m.isBefore(first); m = m.previous)
+        if (items.any((d) => d.isActiveIn(m) || d.isOverdueIn(m))) m,
+    ];
+  }
+
+  /// Debts off this month's list: past their last month, paid off, or
+  /// removed. Most recently finished first.
+  List<DebtModel> get finished {
+    final month = currentMonth;
+    YearMonth doneIn(DebtModel d) =>
+        d.paidMonth ?? d.finalMonth ?? d.startMonth;
+    return items
+        .where((d) => !d.isActiveIn(month) && !d.isOverdueIn(month))
+        .toList()
+      ..sort((a, b) => doneIn(b).compareTo(doneIn(a)));
+  }
+
   Set<YearMonth> get monthsWithData => {
     for (final debt in items)
       for (final key in debt.payments.keys) ?YearMonth.tryParse(key),
@@ -96,6 +131,13 @@ class DebtViewModel extends PersistedListViewModel<DebtModel> {
           debt.endedOn(now),
     ]);
   }
+
+  static DebtMonthStatus _statusOf(DebtModel debt, YearMonth month) =>
+      DebtMonthStatus(
+        debt: debt,
+        amount: debt.amountIn(month),
+        isPaid: debt.isPaidIn(month),
+      );
 
   static int _byPriority(DebtModel a, DebtModel b, YearMonth month) {
     final aPaid = a.isPaidIn(month);

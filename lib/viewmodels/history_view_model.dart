@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/cashflow_summary.dart';
-import '../models/debt_model.dart';
 import '../models/month_report.dart';
 import '../models/year_month.dart';
 import 'cashflow_ledger.dart';
@@ -56,24 +55,18 @@ class HistoryViewModel extends ChangeNotifier {
   /// Includes the baki carried in from the month before.
   CashflowSummary summaryFor(YearMonth month) => _ledger.summaryFor(month);
 
-  MonthReport reportFor(YearMonth month) => MonthReport(
-    month: month,
-    summary: summaryFor(month),
-    incomes: _incomes.incomesIn(month),
-    debts: [for (final debt in _debts.debtsIn(month)) _statusOf(debt, month)],
-    overdue: [
-      for (final debt in _debts.overdueIn(month)) _statusOf(debt, month),
-    ],
-    timeline: _expenses.timelineFor(month),
-    categoryShares: _expenses.categoryBreakdownFor(month),
-  );
-
-  static DebtMonthStatus _statusOf(DebtModel debt, YearMonth month) =>
-      DebtMonthStatus(
-        debt: debt,
-        amount: debt.amountIn(month),
-        isPaid: debt.isPaidIn(month),
-      );
+  MonthReport reportFor(YearMonth month) {
+    final debts = _debts.monthOf(month);
+    return MonthReport(
+      month: month,
+      summary: summaryFor(month),
+      incomes: _incomes.incomesIn(month),
+      debts: debts.debts,
+      overdue: debts.overdue,
+      timeline: _expenses.timelineFor(month),
+      categoryShares: _expenses.categoryBreakdownFor(month),
+    );
+  }
 
   @override
   void dispose() {

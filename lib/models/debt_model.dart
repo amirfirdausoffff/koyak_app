@@ -108,7 +108,31 @@ class DebtModel implements Identifiable {
 
   bool get isOnce => kind == DebtKind.once;
 
+  /// A v1.0.0 record whose real start month is unknown.
+  bool get isLegacy => createdAt == legacyStart;
+
   YearMonth get startMonth => YearMonth.of(createdAt);
+
+  /// The last month this debt counts in: its start month for a one-off,
+  /// otherwise [lastMonth], cut short if it was ended earlier. Null while a
+  /// monthly debt has no end.
+  YearMonth? get finalMonth {
+    final ended = endedAt;
+    final beforeEnd = ended == null ? null : YearMonth.of(ended).previous;
+    final planned = isOnce ? startMonth : lastMonth;
+    if (planned == null || beforeEnd == null) return planned ?? beforeEnd;
+    return beforeEnd.isBefore(planned) ? beforeEnd : planned;
+  }
+
+  /// How many monthly payments it ran for; null for a one-off, a legacy
+  /// record, or a debt with no end yet.
+  int? get scheduledPayments {
+    final last = finalMonth;
+    if (isOnce || isLegacy || last == null) return null;
+    return last.compareTo(startMonth) + 1;
+  }
+
+  double get totalPaid => payments.values.fold(0, (sum, paid) => sum + paid);
 
   /// The month a one-off debt was paid in, if it has been.
   YearMonth? get paidMonth {
