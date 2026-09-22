@@ -25,23 +25,30 @@ Koyak answers one question every day: **how much can I spend today without going
 
 - **Baki Duit Semasa**: your live balance, shown big on the dashboard.
 - **Daily limit**: *"Hari ni kau cuma boleh belanja RM XX.XX supaya tak KOYAK"*.
-- **Debt tracker (Hutang)**: a checklist of monthly commitments tagged **Halal / Bank** or **Risiko / Peribadi**, with due dates that repeat every month.
+- **Money sources (Duit)**: every place your money sits, not just the salary: Gaji, bank balances, e-wallets, cash. Quick chips cover Gaji, Maybank, GX Bank, TNG and Tunai. Tap a source to top it up, set a new amount (RM 0 allowed), rename it or delete it. Adding a name that already exists this month tops that source up instead of listing it twice.
+- **Debt tracker (Hutang)**: a checklist tagged **Halal / Bank** or **Risiko / Peribadi**, in two kinds:
+  - **Bulanan**: a monthly commitment (PTPTN, kereta, kad kredit). The due day repeats every month, and an optional last month shows the countdown: *Hingga Dis 2027 · 16 bayaran lagi*, then *Bayaran terakhir*, then *Hutang selesai!*
+  - **Sekali je**: a one-off (hutang kawan). Once ticked it's gone next month. If it isn't paid, it follows you into the next months under **Tertunggak** until you tick it.
+- **Debt history (Sejarah Hutang)**: every finished month's debts, showing what was paid, what wasn't and what was tertunggak. **Hutang Selesai** lists debts that are paid off, past their last month, or removed, with how much went into each.
 - **Quick expense log (Belanja)**: type an amount, tap a category, done in under 3 seconds. Categories are Makan, Minyak, Bil, Barang Dapur, Beli-belah and Lain-lain.
 - **Analytics (Duit Habis Ke Mana?)**: how the month's money splits into debt, spending and what's left, plus a bar chart of spending per category.
 - **Monthly history (Sejarah Bulanan)**: every finished month is kept. Tap one to see its full breakdown.
+- **Nothing saved by accident**: every save shows a summary to confirm, and every delete asks first.
 - **Optional Google Drive backup**: a daily auto-backup and a restore on a new phone, stored in the hidden app-data folder of the user's own Drive (free, no server).
 
 ## How the money works
 
 | | |
 |---|---|
-| **Baki Duit Semasa** | Baki bulan lepas + Gaji − Hutang − Belanja |
+| **Baki Duit Semasa** | Baki bulan lepas + Duit − Hutang − Belanja |
 | **Had belanja harian** | Baki ÷ days left in the month (today included) |
 
 - **Everything runs by calendar month, and nothing is deleted.** On the 1st, the dashboard starts a new month by itself, and the old month moves to history.
+- **Duit** is the total of this month's money sources. Each source counts in the month it was recorded.
 - **Carry forward.** Whatever is left at the end of a month rolls into the next one. A salary paid on the 25th therefore keeps working next month. An overspent month carries its negative balance too.
-- **Hutang counts every commitment for the month, paid or not**, because that money is already spoken for. Each debt starts every month unpaid, and payments are recorded per month.
-- Removing a debt ends it from the current month onwards, so past months still show it.
+- **Hutang counts every debt for the month, paid or not**, because that money is already spoken for. A monthly debt starts every month unpaid, and payments are recorded per month. It stops counting after its last month.
+- **A one-off debt counts once**, in the month it was added. If it's still unpaid, later months list it under Tertunggak without taking it off the baki again, because the carried-forward baki already paid for it.
+- Removing a debt ends it from the current month onwards, so past months still show it. A debt added this month is deleted outright.
 
 ## Tech stack
 
@@ -65,7 +72,7 @@ lib/
 ├── services/                 # PreferenceService, Google account, Drive backup, scheduler
 ├── repositories/             # Repository<T> + LocalRepository<T>, BackupRepository
 ├── viewmodels/               # Income / Debt / Expense / Cashflow / History / Backup + CashflowLedger
-└── views/                    # dashboard, debt, expense, analytics, history, settings, shared widgets
+└── views/                    # dashboard, income, debt, expense, analytics, history, settings, shared widgets
 ```
 
 - The view models depend only on the `Repository<T>` interface, so the tests swap in in-memory fakes.
