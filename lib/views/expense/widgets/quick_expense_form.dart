@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/expense_model.dart';
+import '../../../models/income_model.dart';
 import '../../../viewmodels/expense_view_model.dart';
 import '../../../viewmodels/income_view_model.dart';
 import '../../shared/category_style.dart';
 import '../../shared/widgets/amount_field.dart';
 import '../../shared/widgets/confirm_dialogs.dart';
+import 'expense_account_picker.dart';
 
 /// Under-3-seconds entry: type the amount, tap a category, hit enter.
 /// The title is optional and defaults to the category name.
@@ -29,6 +31,7 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
   final _title = TextEditingController();
   ExpenseCategory _category = ExpenseCategory.makan;
   String? _account;
+  bool _showAccountError = false;
 
   @override
   void dispose() {
@@ -39,7 +42,10 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    if (_account == null) return;
+    if (_account == null) {
+      setState(() => _showAccountError = true);
+      return;
+    }
 
     final amount = CurrencyFormatter.parse(_amount.text)!;
     final confirmed = await confirmSave(
@@ -69,12 +75,32 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
     widget.onSaved?.call(expense);
   }
 
+  Future<void> _pickAccount(
+    List<IncomeModel> accounts,
+    ExpenseViewModel expenses,
+  ) async {
+    final account = await showExpenseAccountPicker(
+      context,
+      accounts: accounts,
+      expenses: expenses,
+      selectedAccount: _account,
+    );
+    if (account == null || !mounted) return;
+    setState(() {
+      _account = account;
+      _showAccountError = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final accounts = context.watch<IncomeViewModel>().incomes;
     final expenses = context.watch<ExpenseViewModel>();
     final accountNames = accounts.map((income) => income.source).toSet();
     if (!accountNames.contains(_account)) _account = null;
+    final selected = _account == null
+        ? null
+        : accounts.firstWhere((account) => account.source == _account);
 
     return Form(
       key: _formKey,
@@ -112,30 +138,14 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
             ],
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            key: ValueKey(_account),
-            initialValue: _account,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Belanja guna akaun mana?',
-              hintText: 'Pilih akaun duit',
-              prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-            ),
-            items: [
-              for (final account in accounts)
-                DropdownMenuItem(
-                  value: account.source,
-                  child: Text(
-                    '${account.source} · Baki ${(account.amount - expenses.totalFromAccount(account.source)).asRinggit}',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-            onChanged: accounts.isEmpty
+          _AccountPickerField(
+            account: selected,
+            balance: selected == null
                 ? null
-                : (value) => setState(() => _account = value),
-            validator: (value) =>
-                value == null ? 'Pilih akaun untuk belanja ini' : null,
+                : selected.amount - expenses.totalFromAccount(selected.source),
+            enabled: accounts.isNotEmpty,
+            showError: _showAccountError,
+            onTap: () => _pickAccount(accounts, expenses),
           ),
           if (accounts.isEmpty) ...[
             const SizedBox(height: 8),
@@ -152,6 +162,135 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AccountPickerField extends StatelessWidget {
+  const _AccountPickerField({
+    required this.account,
+    required this.balance,
+    required this.enabled,
+    required this.showError,
+    required this.onTap,
+  });
+
+  final IncomeModel? account;
+  final double? balance;
+  final bool enabled;
+  final bool showError;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = account != null;
+    final borderColor = showError
+        ? Theme.of(context).colorScheme.error
+        : selected
+        ? AppColors.green.withValues(alpha: 0.65)
+        : AppColors.border;
+    final radius = BorderRadius.circular(16);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Material(
+          color: selected
+              ? AppColors.green.withValues(alpha: 0.08)
+              : AppColors.surface,
+          borderRadius: radius,
+          child: InkWell(
+            onTap: enabled ? onTap : null,
+            borderRadius: radius,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceRaised,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      selected
+                          ? moneySourceIcon(account!.source)
+                          : Icons.account_balance_wallet_outlined,
+                      color: selected
+                          ? AppColors.green
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Belanja guna akaun mana?',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          selected ? account!.source : 'Pilih akaun duit',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: enabled
+                                ? AppColors.textPrimary
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (selected)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'Baki',
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          balance!.asRinggit,
+                          style: const TextStyle(
+                            color: AppColors.green,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    const Icon(
+                      Icons.unfold_more_rounded,
+                      color: AppColors.textSecondary,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (showError) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Pilih akaun untuk belanja ini',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
