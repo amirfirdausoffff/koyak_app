@@ -89,6 +89,41 @@ void main() {
     expect(find.text('RM 750.00'), findsOneWidget);
   });
 
+  testWidgets('expense account picker searches accounts', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        incomes: [
+          IncomeModel(
+            id: 'g',
+            source: 'Gaji',
+            amount: 1000,
+            date: DateTime.now(),
+          ),
+          IncomeModel(
+            id: 't',
+            source: 'Tunai',
+            amount: 80,
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Catat Belanja'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Belanja guna akaun mana?'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('expense-account-search')),
+      'tunai',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tunai'), findsOneWidget);
+    expect(find.text('Gaji'), findsNothing);
+  });
+
   testWidgets('last month shows up in history with its detail', (tester) async {
     final now = DateTime.now();
     final lastMonth = DateTime(now.year, now.month - 1, 15);
@@ -318,12 +353,9 @@ Finder _inDialog(String text) =>
     find.descendant(of: find.byType(Dialog), matching: find.text(text));
 
 Future<void> _selectExpenseAccount(WidgetTester tester, String account) async {
-  await tester.tap(
-    find.byWidgetPredicate(
-      (widget) => widget is DropdownButtonFormField<String>,
-    ),
-  );
+  await tester.tap(find.text('Belanja guna akaun mana?'));
   await tester.pumpAndSettle();
-  await tester.tap(find.textContaining(account).last);
+  expect(find.text('Pilih akaun bayaran'), findsOneWidget);
+  await tester.tap(find.text(account).last);
   await tester.pumpAndSettle();
 }
