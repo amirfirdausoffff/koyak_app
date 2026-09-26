@@ -57,6 +57,10 @@ class CashflowSummary {
   /// Money to work with this month: last month's baki plus this month's pay.
   double get available => carriedForward + totalIncome;
 
+  /// Cash after this month's recorded spending, before reserving scheduled
+  /// debt commitments. This is the amount shown as Duit on the dashboard.
+  double get cashOnHand => available - totalExpense;
+
   /// Anything to budget with — this month's pay or a carried balance.
   bool get hasFunds => totalIncome > 0 || carriedForward != 0;
 

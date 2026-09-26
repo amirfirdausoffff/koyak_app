@@ -103,9 +103,12 @@ class TodayCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hari ini',
-                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  Text(
+                    'Bulan ini · ${DateFormatter.month(DateTime.now())}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(

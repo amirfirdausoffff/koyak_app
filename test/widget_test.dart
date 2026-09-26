@@ -32,7 +32,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Koyak'), findsOneWidget);
-    expect(find.text('Baki Duit Semasa'), findsOneWidget);
+    expect(find.text('Boleh Belanja Lagi'), findsOneWidget);
     expect(find.text('Masukkan Duit'), findsOneWidget);
   });
 
@@ -147,7 +147,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // This month starts with last month's leftover carried in.
-    expect(find.text('RM 2,988.00'), findsOneWidget);
+    // Hero and card Duit both show the carried cash balance.
+    expect(find.text('RM 2,988.00'), findsNWidgets(2));
     expect(find.textContaining('Termasuk baki'), findsOneWidget);
     expect(find.text('Masukkan Duit'), findsNothing);
 

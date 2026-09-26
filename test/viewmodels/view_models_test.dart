@@ -27,6 +27,7 @@ void main() {
         daysRemaining: 10,
       );
       expect(summary.netRemaining, 2000);
+      expect(summary.cashOnHand, 3300);
       expect(summary.dailyLimit, 200);
       expect(summary.isKoyak, isFalse);
     });
