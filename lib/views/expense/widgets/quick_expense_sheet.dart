@@ -15,6 +15,7 @@ Future<void> showQuickExpenseSheet(BuildContext context) {
     title: 'Catat Belanja',
     builder: (sheetContext) => QuickExpenseForm(
       autofocus: true,
+      showHeader: false,
       onSaved: (expense) {
         Navigator.of(sheetContext).pop();
         showKoyakSnack(

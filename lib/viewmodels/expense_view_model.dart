@@ -21,6 +21,17 @@ class ExpenseViewModel extends PersistedListViewModel<ExpenseModel> {
 
   double get total => totalIn(currentMonth);
 
+  /// Built-in and previously used categories, ready for the category field's
+  /// suggestions. New user-entered names join this list after they are saved.
+  List<ExpenseCategory> get categorySuggestions {
+    final categories = <ExpenseCategory>{
+      ...ExpenseCategory.values,
+      for (final expense in items) expense.category,
+    };
+    return categories.toList()
+      ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+  }
+
   List<ExpenseDayGroup> get timeline => timelineFor(currentMonth);
 
   List<CategoryShare> get categoryBreakdown =>

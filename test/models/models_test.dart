@@ -87,11 +87,12 @@ void main() {
     });
   });
 
-  test('unknown categories fall back safely', () {
+  test('custom expense categories are preserved safely', () {
     final debt = DebtModel.fromMap({'id': 'x', 'category': 'crypto'});
     final expense = ExpenseModel.fromMap({'id': 'y', 'category': 'crypto'});
     expect(debt.category, DebtCategory.halal);
-    expect(expense.category, ExpenseCategory.lainLain);
+    expect(expense.category.label, 'crypto');
+    expect(expense.category.isCustom, isTrue);
   });
 
   test('v1.0.0 debts migrate: paid flag becomes this month, counts always', () {

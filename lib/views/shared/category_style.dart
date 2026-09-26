@@ -7,14 +7,18 @@ import '../../models/expense_model.dart';
 // Visual styling lives in the view layer so models stay framework-free.
 
 extension ExpenseCategoryStyle on ExpenseCategory {
-  IconData get icon => switch (this) {
-    ExpenseCategory.makan => Icons.restaurant_rounded,
-    ExpenseCategory.minyak => Icons.local_gas_station_rounded,
-    ExpenseCategory.bil => Icons.receipt_rounded,
-    ExpenseCategory.barangDapur => Icons.shopping_basket_rounded,
-    ExpenseCategory.beliBelah => Icons.shopping_bag_rounded,
-    ExpenseCategory.lainLain => Icons.more_horiz_rounded,
-  };
+  IconData get icon {
+    if (this == ExpenseCategory.makan) return Icons.restaurant_rounded;
+    if (this == ExpenseCategory.minyak) {
+      return Icons.local_gas_station_rounded;
+    }
+    if (this == ExpenseCategory.bil) return Icons.receipt_rounded;
+    if (this == ExpenseCategory.barangDapur) {
+      return Icons.shopping_basket_rounded;
+    }
+    if (this == ExpenseCategory.beliBelah) return Icons.shopping_bag_rounded;
+    return isCustom ? Icons.sell_outlined : Icons.more_horiz_rounded;
+  }
 }
 
 extension DebtCategoryStyle on DebtCategory {
