@@ -28,6 +28,7 @@ class ExpenseModel implements Identifiable {
     required this.amount,
     required this.category,
     required this.date,
+    this.account = '',
   });
 
   factory ExpenseModel.fromMap(Map<String, dynamic> map) => ExpenseModel(
@@ -36,6 +37,7 @@ class ExpenseModel implements Identifiable {
     amount: (map['amount'] as num?)?.toDouble() ?? 0,
     category: ExpenseCategory.fromName(map['category'] as String?),
     date: DateTime.tryParse(map['date'] as String? ?? '') ?? DateTime.now(),
+    account: map['account'] as String? ?? '',
   );
 
   factory ExpenseModel.fromJson(String json) =>
@@ -48,17 +50,23 @@ class ExpenseModel implements Identifiable {
   final ExpenseCategory category;
   final DateTime date;
 
+  /// The money source used for this expense, e.g. Maybank or TNG.
+  /// Empty values are records created before account tracking was added.
+  final String account;
+
   ExpenseModel copyWith({
     String? title,
     double? amount,
     ExpenseCategory? category,
     DateTime? date,
+    String? account,
   }) => ExpenseModel(
     id: id,
     title: title ?? this.title,
     amount: amount ?? this.amount,
     category: category ?? this.category,
     date: date ?? this.date,
+    account: account ?? this.account,
   );
 
   Map<String, dynamic> toMap() => {
@@ -67,6 +75,7 @@ class ExpenseModel implements Identifiable {
     'amount': amount,
     'category': category.name,
     'date': date.toIso8601String(),
+    'account': account,
   };
 
   String toJson() => jsonEncode(toMap());
@@ -78,8 +87,9 @@ class ExpenseModel implements Identifiable {
       other.title == title &&
       other.amount == amount &&
       other.category == category &&
-      other.date == date;
+      other.date == date &&
+      other.account == account;
 
   @override
-  int get hashCode => Object.hash(id, title, amount, category, date);
+  int get hashCode => Object.hash(id, title, amount, category, date, account);
 }

@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../models/expense_model.dart';
 import '../../../viewmodels/expense_view_model.dart';
+import '../../../viewmodels/income_view_model.dart';
 import '../../shared/category_style.dart';
 import '../../shared/widgets/amount_field.dart';
 import '../../shared/widgets/confirm_dialogs.dart';
@@ -27,6 +28,7 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
   final _amount = TextEditingController();
   final _title = TextEditingController();
   ExpenseCategory _category = ExpenseCategory.makan;
+  String? _account;
 
   @override
   void dispose() {
@@ -37,6 +39,7 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_account == null) return;
 
     final amount = CurrencyFormatter.parse(_amount.text)!;
     final confirmed = await confirmSave(
@@ -45,7 +48,7 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
       summary: ConfirmSummary(
         icon: _category.icon,
         title: ExpenseViewModel.resolveTitle(_title.text, _category),
-        subtitle: _category.label,
+        subtitle: '${_category.label} · Guna $_account',
         amount: amount,
       ),
     );
@@ -54,6 +57,7 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
     final expense = await context.read<ExpenseViewModel>().add(
       amount: amount,
       category: _category,
+      account: _account!,
       title: _title.text,
     );
     if (!mounted) return;
@@ -61,11 +65,17 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
     HapticFeedback.lightImpact();
     _amount.clear();
     _title.clear();
+    setState(() => _account = null);
     widget.onSaved?.call(expense);
   }
 
   @override
   Widget build(BuildContext context) {
+    final accounts = context.watch<IncomeViewModel>().incomes;
+    final expenses = context.watch<ExpenseViewModel>();
+    final accountNames = accounts.map((income) => income.source).toSet();
+    if (!accountNames.contains(_account)) _account = null;
+
     return Form(
       key: _formKey,
       child: Column(
@@ -102,8 +112,41 @@ class _QuickExpenseFormState extends State<QuickExpenseForm> {
             ],
           ),
           const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            key: ValueKey(_account),
+            initialValue: _account,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Belanja guna akaun mana?',
+              hintText: 'Pilih akaun duit',
+              prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+            ),
+            items: [
+              for (final account in accounts)
+                DropdownMenuItem(
+                  value: account.source,
+                  child: Text(
+                    '${account.source} · Baki ${(account.amount - expenses.totalFromAccount(account.source)).asRinggit}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: accounts.isEmpty
+                ? null
+                : (value) => setState(() => _account = value),
+            validator: (value) =>
+                value == null ? 'Pilih akaun untuk belanja ini' : null,
+          ),
+          if (accounts.isEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Tambah akaun dulu melalui bahagian Duit (contoh: Maybank, TNG atau Tunai).',
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: _save,
+            onPressed: accounts.isEmpty ? null : _save,
             icon: const Icon(Icons.check_rounded),
             label: const Text('Simpan'),
           ),

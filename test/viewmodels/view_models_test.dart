@@ -275,8 +275,10 @@ void main() {
       final expense = await vm.add(
         amount: 12,
         category: ExpenseCategory.minyak,
+        account: 'TNG',
       );
       expect(expense.title, 'Minyak');
+      expect(expense.account, 'TNG');
       expect(vm.todayTotal, 12);
     });
 
@@ -301,6 +303,19 @@ void main() {
       expect(vm.total, 0);
       expect(vm.timeline, isEmpty);
       expect(vm.totalIn(const YearMonth(2026, 9)), 50);
+    });
+
+    test('totals spending by the selected account', () async {
+      await vm.add(amount: 12, category: ExpenseCategory.makan, account: 'TNG');
+      await vm.add(
+        amount: 8,
+        category: ExpenseCategory.bil,
+        account: 'Maybank',
+      );
+      await vm.add(amount: 3, category: ExpenseCategory.makan, account: 'tng');
+
+      expect(vm.totalFromAccount('TNG'), 15);
+      expect(vm.totalFromAccount('Maybank'), 8);
     });
   });
 

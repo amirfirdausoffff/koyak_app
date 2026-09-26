@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/income_model.dart';
+import '../../viewmodels/expense_view_model.dart';
 import '../../viewmodels/income_view_model.dart';
 import '../shared/category_style.dart';
 import '../shared/widgets/amount_field.dart';
@@ -103,12 +104,16 @@ class _IncomeSheetState extends State<IncomeSheet> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<IncomeViewModel>();
+    final expenses = context.watch<ExpenseViewModel>();
     final incomes = vm.incomes;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TotalCard(total: vm.total, sourceCount: incomes.length),
+        _TotalCard(
+          total: vm.total - expenses.total,
+          sourceCount: incomes.length,
+        ),
         const SizedBox(height: 12),
         if (incomes.isEmpty)
           const Padding(
@@ -124,6 +129,7 @@ class _IncomeSheetState extends State<IncomeSheet> {
             if (index > 0) const SizedBox(height: 8),
             _SourceTile(
               income: income,
+              spent: expenses.totalFromAccount(income.source),
               onTap: () => showIncomeEditSheet(context, income),
             ),
           ],
@@ -214,7 +220,7 @@ class _TotalCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Jumlah duit bulan ni',
+                    'Jumlah baki bulan ni',
                     style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 2),
@@ -245,9 +251,14 @@ class _TotalCard extends StatelessWidget {
 }
 
 class _SourceTile extends StatelessWidget {
-  const _SourceTile({required this.income, required this.onTap});
+  const _SourceTile({
+    required this.income,
+    required this.spent,
+    required this.onTap,
+  });
 
   final IncomeModel income;
+  final double spent;
   final VoidCallback onTap;
 
   @override
@@ -288,7 +299,9 @@ class _SourceTile extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      'Sejak ${DateFormatter.short(income.date)}',
+                      spent > 0
+                          ? 'Belanja ${spent.asRinggit} · sejak ${DateFormatter.short(income.date)}'
+                          : 'Sejak ${DateFormatter.short(income.date)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textMuted,
@@ -298,7 +311,7 @@ class _SourceTile extends StatelessWidget {
                 ),
               ),
               Text(
-                income.amount.asRinggit,
+                (income.amount - spent).asRinggit,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               const Icon(

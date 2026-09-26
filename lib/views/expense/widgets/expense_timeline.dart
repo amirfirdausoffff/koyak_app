@@ -98,6 +98,7 @@ class _DismissibleExpenseTile extends StatelessWidget {
           title: expense.title,
           subtitle:
               '${expense.category.label} · '
+              '${expense.account.isEmpty ? 'Akaun tidak direkod' : expense.account} · '
               '${DateFormatter.relativeDay(expense.date, DateTime.now())}',
           amount: expense.amount,
         ),
@@ -152,6 +153,7 @@ class _ExpenseRow extends StatelessWidget {
                 ),
                 Text(
                   '${expense.category.label} · '
+                  '${expense.account.isEmpty ? 'Akaun tidak direkod' : expense.account} · '
                   '${DateFormatter.time(expense.date)}',
                   style: const TextStyle(
                     color: AppColors.textMuted,
