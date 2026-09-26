@@ -41,6 +41,16 @@ class ExpenseViewModel extends PersistedListViewModel<ExpenseModel> {
 
   double totalIn(YearMonth month) => _sum(expensesIn(month));
 
+  /// Amount spent from [account] in [month].
+  double totalFromAccount(String account, [YearMonth? month]) {
+    final name = account.trim().toLowerCase();
+    if (name.isEmpty) return 0;
+    final expenses = month == null ? this.expenses : expensesIn(month);
+    return _sum(
+      expenses.where((expense) => expense.account.trim().toLowerCase() == name),
+    );
+  }
+
   /// [month]'s expenses bucketed per day, newest day first.
   List<ExpenseDayGroup> timelineFor(YearMonth month) {
     final groups = <ExpenseDayGroup>[];
@@ -85,6 +95,7 @@ class ExpenseViewModel extends PersistedListViewModel<ExpenseModel> {
   Future<ExpenseModel> add({
     required double amount,
     required ExpenseCategory category,
+    String account = '',
     String title = '',
   }) async {
     final expense = ExpenseModel(
@@ -93,6 +104,7 @@ class ExpenseViewModel extends PersistedListViewModel<ExpenseModel> {
       amount: amount,
       category: category,
       date: _clock(),
+      account: account.trim(),
     );
     await upsert(expense);
     return expense;

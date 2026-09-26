@@ -69,6 +69,7 @@ void main() {
         amount: 8.5,
         category: ExpenseCategory.makan,
         date: DateTime(2026, 9, 21, 8, 30),
+        account: 'Maybank',
       );
       expect(ExpenseModel.fromJson(expense.toJson()), expense);
     });
