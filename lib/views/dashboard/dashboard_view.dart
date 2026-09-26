@@ -33,6 +33,7 @@ class DashboardView extends StatelessWidget {
     final incomeCount = context.select<IncomeViewModel, int>(
       (vm) => vm.incomes.length,
     );
+    final unpaidDebtCount = debts.count - debts.paidCount;
     final hasHistory = context.select<HistoryViewModel, bool>(
       (vm) => vm.pastMonths.isNotEmpty,
     );
@@ -68,19 +69,21 @@ class DashboardView extends StatelessWidget {
               tiles: [
                 StatTileData(
                   label: 'Duit',
-                  // Keep this in sync with the Duit Kau sheet: spending from
-                  // an account lowers its available balance immediately.
-                  amount: summary.totalIncome - summary.totalExpense,
-                  caption: incomeCount == 0
+                  amount: summary.cashOnHand,
+                  caption: summary.carriedForward != 0
+                      ? 'Baki dibawa'
+                      : incomeCount == 0
                       ? 'Tap untuk isi'
-                      : '$incomeCount sumber',
+                      : '$incomeCount akaun',
                   icon: Icons.account_balance_wallet_outlined,
                   onTap: () => showIncomeSheet(context),
                 ),
                 StatTileData(
                   label: 'Hutang',
-                  amount: summary.totalDebt,
-                  caption: '${debts.paidCount}/${debts.count} selesai',
+                  amount: debts.unpaidAmount,
+                  caption: unpaidDebtCount == 0
+                      ? 'Semua selesai'
+                      : '$unpaidDebtCount belum bayar',
                   icon: Icons.receipt_long_outlined,
                   onTap: () => onOpenTab(HomeTab.debts),
                 ),
