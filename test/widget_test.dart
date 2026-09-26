@@ -78,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '250');
     await _selectExpenseAccount(tester, 'Gaji');
-    await tester.tap(find.text('Simpan'));
+    await tester.tap(find.byKey(const ValueKey('save-expense')));
     await tester.pumpAndSettle();
 
     // Nothing is saved until the confirmation dialog is accepted.
@@ -113,7 +113,7 @@ void main() {
 
     await tester.tap(find.text('Catat Belanja'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Belanja guna akaun mana?'));
+    await tester.tap(find.byKey(const ValueKey('expense-account-picker')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('expense-account-search')),
@@ -187,7 +187,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField).first, '250');
     await _selectExpenseAccount(tester, 'Gaji');
-    await tester.tap(find.text('Simpan'));
+    await tester.tap(find.byKey(const ValueKey('save-expense')));
     await tester.pumpAndSettle();
     await tester.tap(_inDialog('Batal'));
     await tester.pumpAndSettle();
@@ -245,6 +245,57 @@ void main() {
     await tester.tap(_inDialog('Padam'));
     await tester.pumpAndSettle();
     expect(find.text('Nasi lemak'), findsNothing);
+  });
+
+  testWidgets('full expense history can search by account', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        expenses: [
+          ExpenseModel(
+            id: 'food',
+            title: 'Nasi lemak',
+            amount: 12,
+            category: ExpenseCategory.makan,
+            account: 'Maybank',
+            date: DateTime.now(),
+          ),
+          ExpenseModel(
+            id: 'fuel',
+            title: 'Petrol',
+            amount: 50,
+            category: ExpenseCategory.minyak,
+            account: 'Touch n Go',
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Belanja'));
+    await tester.pumpAndSettle();
+
+    final fullHistory = find.text('Lihat sejarah penuh');
+    await tester.scrollUntilVisible(
+      fullHistory,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(fullHistory);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sejarah Belanja'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('expense-history-search')),
+      'maybank',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Nasi lemak'), findsOneWidget);
+    expect(find.text('Petrol'), findsNothing);
   });
 
   testWidgets('topping up an existing money source', (tester) async {
@@ -355,7 +406,7 @@ Finder _inDialog(String text) =>
     find.descendant(of: find.byType(Dialog), matching: find.text(text));
 
 Future<void> _selectExpenseAccount(WidgetTester tester, String account) async {
-  await tester.tap(find.text('Belanja guna akaun mana?'));
+  await tester.tap(find.byKey(const ValueKey('expense-account-picker')));
   await tester.pumpAndSettle();
   expect(find.text('Pilih akaun bayaran'), findsOneWidget);
   await tester.tap(find.text(account).last);

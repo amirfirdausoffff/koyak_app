@@ -318,6 +318,13 @@ void main() {
       expect(vm.totalFromAccount('TNG'), 15);
       expect(vm.totalFromAccount('Maybank'), 8);
     });
+
+    test('a new category becomes a future suggestion', () async {
+      final kopi = ExpenseCategory.fromLabel('Kopi');
+      await vm.add(amount: 6, category: kopi, account: 'Tunai');
+
+      expect(vm.categorySuggestions, contains(kopi));
+    });
   });
 
   group('Cashflow + history across months', () {

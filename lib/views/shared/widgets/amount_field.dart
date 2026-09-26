@@ -13,6 +13,7 @@ class AmountField extends StatelessWidget {
     this.focusNode,
     this.autofocus = false,
     this.large = false,
+    this.composer = false,
     this.textInputAction,
     this.onSubmitted,
     this.allowZero = false,
@@ -24,6 +25,9 @@ class AmountField extends StatelessWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool large;
+
+  /// A borderless, large amount field used in the Belanja smart composer.
+  final bool composer;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
 
@@ -47,7 +51,7 @@ class AmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = large ? 26.0 : 16.0;
+    final fontSize = composer ? 34.0 : (large ? 26.0 : 16.0);
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -60,12 +64,42 @@ class AmountField extends StatelessWidget {
       onFieldSubmitted: onSubmitted,
       style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700),
       decoration: InputDecoration(
+        filled: !composer,
+        fillColor: composer ? Colors.transparent : null,
+        contentPadding: composer
+            ? const EdgeInsets.only(bottom: 12)
+            : null,
         hintText: hintText,
         hintStyle: TextStyle(
           fontSize: large ? fontSize : 15,
           fontWeight: large ? FontWeight.w700 : FontWeight.w400,
           color: AppColors.textMuted,
         ),
+        border: composer
+            ? const UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.border),
+              )
+            : null,
+        enabledBorder: composer
+            ? const UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.border),
+              )
+            : null,
+        focusedBorder: composer
+            ? const UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.green, width: 2),
+              )
+            : null,
+        errorBorder: composer
+            ? const UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.amber),
+              )
+            : null,
+        focusedErrorBorder: composer
+            ? const UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.amber, width: 2),
+              )
+            : null,
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 16, right: 8),
           child: Text(

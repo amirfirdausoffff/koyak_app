@@ -18,10 +18,12 @@ class ExpenseTimeline extends StatelessWidget {
     super.key,
     required this.groups,
     this.editable = true,
+    this.showDayTotal = true,
   });
 
   final List<ExpenseDayGroup> groups;
   final bool editable;
+  final bool showDayTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -32,18 +34,74 @@ class ExpenseTimeline extends StatelessWidget {
         for (final group in groups) ...[
           _DayHeader(
             label: DateFormatter.relativeDay(group.day, now),
-            total: group.total,
+            total: showDayTotal ? group.total : null,
           ),
-          for (final expense in group.expenses)
-            editable
-                ? _DismissibleExpenseTile(
-                    key: ValueKey(expense.id),
-                    expense: expense,
-                  )
-                : _ExpenseRow(key: ValueKey(expense.id), expense: expense),
+          for (final (index, expense) in group.expenses.indexed)
+            _TimelineExpense(
+              key: ValueKey(expense.id),
+              expense: expense,
+              editable: editable,
+              highlighted: index == 0,
+            ),
           const SizedBox(height: 16),
         ],
       ],
+    );
+  }
+}
+
+class _TimelineExpense extends StatelessWidget {
+  const _TimelineExpense({
+    super.key,
+    required this.expense,
+    required this.editable,
+    required this.highlighted,
+  });
+
+  final ExpenseModel expense;
+  final bool editable;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = editable
+        ? _DismissibleExpenseTile(expense: expense)
+        : _ExpenseRow(expense: expense);
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 18,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Positioned(
+                  top: 0,
+                  bottom: 0,
+                  child: VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: AppColors.border,
+                  ),
+                ),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: highlighted
+                        ? AppColors.green
+                        : AppColors.textMuted,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.background, width: 2),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(child: tile),
+        ],
+      ),
     );
   }
 }
@@ -52,7 +110,7 @@ class _DayHeader extends StatelessWidget {
   const _DayHeader({required this.label, required this.total});
 
   final String label;
-  final double total;
+  final double? total;
 
   @override
   Widget build(BuildContext context) {
@@ -63,10 +121,11 @@ class _DayHeader extends StatelessWidget {
         children: [
           Text(label, style: style?.copyWith(fontWeight: FontWeight.w700)),
           const Spacer(),
-          Text(
-            total.asRinggit,
-            style: style?.copyWith(color: AppColors.textSecondary),
-          ),
+          if (total case final amount?)
+            Text(
+              amount.asRinggit,
+              style: style?.copyWith(color: AppColors.textSecondary),
+            ),
         ],
       ),
     );
@@ -74,7 +133,7 @@ class _DayHeader extends StatelessWidget {
 }
 
 class _DismissibleExpenseTile extends StatelessWidget {
-  const _DismissibleExpenseTile({super.key, required this.expense});
+  const _DismissibleExpenseTile({required this.expense});
 
   final ExpenseModel expense;
 
@@ -117,7 +176,7 @@ class _DismissibleExpenseTile extends StatelessWidget {
 }
 
 class _ExpenseRow extends StatelessWidget {
-  const _ExpenseRow({super.key, required this.expense});
+  const _ExpenseRow({required this.expense});
 
   final ExpenseModel expense;
 

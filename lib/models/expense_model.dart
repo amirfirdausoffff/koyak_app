@@ -4,20 +4,55 @@ import 'package:flutter/foundation.dart';
 
 import 'identifiable.dart';
 
-enum ExpenseCategory {
-  makan('Makan'),
-  minyak('Minyak'),
-  bil('Bil'),
-  barangDapur('Barang Dapur'),
-  beliBelah('Beli-belah'),
-  lainLain('Lain-lain');
+/// A spending category. The built-in choices are only suggestions: users may
+/// type a category of their own, which is saved with the expense and becomes a
+/// suggestion in future entries.
+@immutable
+class ExpenseCategory {
+  const ExpenseCategory._(this.name, this.label);
 
-  const ExpenseCategory(this.label);
+  static const makan = ExpenseCategory._('makan', 'Makan');
+  static const minyak = ExpenseCategory._('minyak', 'Minyak');
+  static const bil = ExpenseCategory._('bil', 'Bil');
+  static const barangDapur = ExpenseCategory._('barangDapur', 'Barang Dapur');
+  static const beliBelah = ExpenseCategory._('beliBelah', 'Beli-belah');
+  static const lainLain = ExpenseCategory._('lainLain', 'Lain-lain');
 
+  static const values = [makan, minyak, bil, barangDapur, beliBelah, lainLain];
+
+  /// Stable key for built-ins and a normalised key for user-created names.
+  final String name;
   final String label;
 
-  static ExpenseCategory fromName(String? name) =>
-      values.asNameMap()[name] ?? ExpenseCategory.lainLain;
+  bool get isCustom => !values.any((category) => category.name == name);
+
+  /// The original category names are kept for backward-compatible storage.
+  String get storageValue => isCustom ? label : name;
+
+  factory ExpenseCategory.fromName(String? name) {
+    final value = name?.trim() ?? '';
+    for (final category in values) {
+      if (category.name == value) return category;
+    }
+    return ExpenseCategory.fromLabel(value);
+  }
+
+  factory ExpenseCategory.fromLabel(String label) {
+    final value = label.trim();
+    if (value.isEmpty) return lainLain;
+    final normalised = value.toLowerCase();
+    for (final category in values) {
+      if (category.label.toLowerCase() == normalised) return category;
+    }
+    return ExpenseCategory._('custom:$normalised', value);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ExpenseCategory && other.name == name;
+
+  @override
+  int get hashCode => name.hashCode;
 }
 
 @immutable
@@ -73,7 +108,7 @@ class ExpenseModel implements Identifiable {
     'id': id,
     'title': title,
     'amount': amount,
-    'category': category.name,
+    'category': category.storageValue,
     'date': date.toIso8601String(),
     'account': account,
   };
