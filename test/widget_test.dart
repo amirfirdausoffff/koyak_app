@@ -86,7 +86,8 @@ void main() {
     await tester.tap(_inDialog('Simpan'));
     await tester.pumpAndSettle();
 
-    expect(find.text('RM 750.00'), findsOneWidget);
+    // Baki utama dan card Duit both update after the expense is saved.
+    expect(find.text('RM 750.00'), findsNWidgets(2));
   });
 
   testWidgets('last month shows up in history with its detail', (tester) async {

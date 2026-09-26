@@ -68,7 +68,9 @@ class DashboardView extends StatelessWidget {
               tiles: [
                 StatTileData(
                   label: 'Duit',
-                  amount: summary.totalIncome,
+                  // Keep this in sync with the Duit Kau sheet: spending from
+                  // an account lowers its available balance immediately.
+                  amount: summary.totalIncome - summary.totalExpense,
                   caption: incomeCount == 0
                       ? 'Tap untuk isi'
                       : '$incomeCount sumber',
