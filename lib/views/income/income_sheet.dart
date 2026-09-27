@@ -11,7 +11,6 @@ import '../shared/category_style.dart';
 import '../shared/widgets/amount_field.dart';
 import '../shared/widgets/confirm_dialogs.dart';
 import '../shared/widgets/koyak_sheet.dart';
-import 'income_edit_sheet.dart';
 import 'account_history_view.dart';
 
 Future<void> showIncomeSheet(BuildContext context) => showKoyakSheet<void>(
@@ -34,31 +33,38 @@ class _IncomeSheetState extends State<IncomeSheet> {
   final _formKey = GlobalKey<FormState>();
   final _source = TextEditingController();
   final _amount = TextEditingController();
+  final _sourceFocus = FocusNode();
   final _amountFocus = FocusNode();
+  bool _isAddExpanded = false;
 
   @override
   void dispose() {
     _source.dispose();
     _amount.dispose();
+    _sourceFocus.dispose();
     _amountFocus.dispose();
     super.dispose();
   }
 
-  /// A suggestion that already exists opens it for a top-up instead.
+  /// Existing names become a top-up; new names create a source on save.
   void _pickSuggestion(String name) {
-    final existing = context.read<IncomeViewModel>().sourceNamed(name);
-    if (existing != null) {
-      showIncomeEditSheet(
-        context,
-        existing,
-        spent: context.read<ExpenseViewModel>().totalFromAccount(
-          existing.source,
-        ),
-      );
-      return;
-    }
-    _source.text = name;
+    setState(() => _isAddExpanded = true);
+    _source.value = TextEditingValue(
+      text: name,
+      selection: TextSelection.collapsed(offset: name.length),
+    );
     _amountFocus.requestFocus();
+  }
+
+  void _toggleAdd() {
+    setState(() => _isAddExpanded = !_isAddExpanded);
+    if (_isAddExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _sourceFocus.requestFocus();
+      });
+    } else {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   Future<void> _submit() async {
@@ -109,6 +115,7 @@ class _IncomeSheetState extends State<IncomeSheet> {
     if (!mounted) return;
     _source.clear();
     _amount.clear();
+    setState(() => _isAddExpanded = false);
     FocusScope.of(context).unfocus();
   }
 
@@ -144,66 +151,256 @@ class _IncomeSheetState extends State<IncomeSheet> {
               onTap: () => AccountHistoryView.open(context, income),
             ),
           ],
-        const SizedBox(height: 24),
-        const Text(
-          'Tambah sumber duit',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
+        const SizedBox(height: 20),
+        _AddMoneyComposer(
+          expanded: _isAddExpanded,
+          formKey: _formKey,
+          sourceController: _source,
+          amountController: _amount,
+          sourceFocus: _sourceFocus,
+          amountFocus: _amountFocus,
+          suggestions: {
+            ...incomes.map((income) => income.source),
+            ...IncomeSheet.suggestions,
+          }.toList(),
+          recentSources: incomes
+              .map((income) => income.source)
+              .take(3)
+              .toList(),
+          onToggle: _toggleAdd,
+          onSuggestion: _pickSuggestion,
+          onSubmit: _submit,
+        ),
+      ],
+    );
+  }
+}
+
+class _AddMoneyComposer extends StatelessWidget {
+  const _AddMoneyComposer({
+    required this.expanded,
+    required this.formKey,
+    required this.sourceController,
+    required this.amountController,
+    required this.sourceFocus,
+    required this.amountFocus,
+    required this.suggestions,
+    required this.recentSources,
+    required this.onToggle,
+    required this.onSuggestion,
+    required this.onSubmit,
+  });
+
+  final bool expanded;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController sourceController;
+  final TextEditingController amountController;
+  final FocusNode sourceFocus;
+  final FocusNode amountFocus;
+  final List<String> suggestions;
+  final List<String> recentSources;
+  final VoidCallback onToggle;
+  final ValueChanged<String> onSuggestion;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: expanded
+                ? AppColors.green.withValues(alpha: 0.42)
+                : AppColors.border,
           ),
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final name in IncomeSheet.suggestions)
-              ActionChip(
-                avatar: Icon(
-                  moneySourceIcon(name),
-                  size: 16,
-                  color: AppColors.textSecondary,
-                ),
-                label: Text(name),
-                labelStyle: const TextStyle(color: AppColors.textSecondary),
-                onPressed: () => _pickSuggestion(name),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Form(
-          key: _formKey,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 4, 16, expanded ? 16 : 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _source,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  hintText: 'Nama sumber (cth: Gaji, Maybank, TNG)',
+              InkWell(
+                key: const ValueKey('toggle-add-income'),
+                borderRadius: BorderRadius.circular(14),
+                onTap: onToggle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.green.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Icon(
+                          Icons.add_card_rounded,
+                          size: 20,
+                          color: expanded
+                              ? AppColors.green
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tambah duit',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              'Topup akaun atau cipta sumber baru',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                validator: (value) => (value?.trim().isEmpty ?? true)
-                    ? 'Nama sumber diperlukan'
-                    : null,
               ),
-              const SizedBox(height: 10),
-              AmountField(
-                controller: _amount,
-                focusNode: _amountFocus,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: _submit,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Tambah'),
-              ),
+              if (expanded) ...[
+                const Divider(height: 12),
+                if (recentSources.isNotEmpty) ...[
+                  const Text(
+                    'Akaun terkini',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final source in recentSources)
+                        ActionChip(
+                          avatar: Icon(
+                            moneySourceIcon(source),
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                          label: Text(source),
+                          onPressed: () => onSuggestion(source),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                Form(
+                  key: formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      RawAutocomplete<String>(
+                        textEditingController: sourceController,
+                        focusNode: sourceFocus,
+                        displayStringForOption: (option) => option,
+                        optionsBuilder: (value) {
+                          final query = value.text.trim().toLowerCase();
+                          if (query.isEmpty) return suggestions;
+                          return suggestions.where(
+                            (option) => option.toLowerCase().contains(query),
+                          );
+                        },
+                        onSelected: onSuggestion,
+                        fieldViewBuilder:
+                            (context, controller, focusNode, onSubmitted) =>
+                                TextFormField(
+                                  key: const ValueKey('income-source-field'),
+                                  controller: controller,
+                                  focusNode: focusNode,
+                                  textCapitalization: TextCapitalization.words,
+                                  textInputAction: TextInputAction.next,
+                                  onFieldSubmitted: (_) =>
+                                      amountFocus.requestFocus(),
+                                  decoration: const InputDecoration(
+                                    prefixIcon: Icon(Icons.search_rounded),
+                                    labelText:
+                                        'Pilih akaun atau taip nama baru',
+                                    hintText: 'Cth: GX Bank, Gaji, Tunai',
+                                  ),
+                                  validator: (value) =>
+                                      (value?.trim().isEmpty ?? true)
+                                      ? 'Nama sumber diperlukan'
+                                      : null,
+                                ),
+                        optionsViewBuilder: (context, onSelected, options) {
+                          final items = options.toList();
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              color: AppColors.surfaceRaised,
+                              elevation: 8,
+                              borderRadius: BorderRadius.circular(14),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxHeight: 220,
+                                  maxWidth: 320,
+                                ),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  itemCount: items.length,
+                                  itemBuilder: (context, index) {
+                                    final item = items[index];
+                                    return ListTile(
+                                      dense: true,
+                                      leading: Icon(
+                                        moneySourceIcon(item),
+                                        size: 20,
+                                      ),
+                                      title: Text(item),
+                                      onTap: () => onSelected(item),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      AmountField(
+                        controller: amountController,
+                        focusNode: amountFocus,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => onSubmit(),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        key: const ValueKey('save-income'),
+                        onPressed: onSubmit,
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('Simpan'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
