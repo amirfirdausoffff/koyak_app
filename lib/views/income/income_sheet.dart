@@ -12,6 +12,7 @@ import '../shared/widgets/amount_field.dart';
 import '../shared/widgets/confirm_dialogs.dart';
 import '../shared/widgets/koyak_sheet.dart';
 import 'income_edit_sheet.dart';
+import 'account_history_view.dart';
 
 Future<void> showIncomeSheet(BuildContext context) => showKoyakSheet<void>(
   context,
@@ -47,7 +48,13 @@ class _IncomeSheetState extends State<IncomeSheet> {
   void _pickSuggestion(String name) {
     final existing = context.read<IncomeViewModel>().sourceNamed(name);
     if (existing != null) {
-      showIncomeEditSheet(context, existing);
+      showIncomeEditSheet(
+        context,
+        existing,
+        spent: context.read<ExpenseViewModel>().totalFromAccount(
+          existing.source,
+        ),
+      );
       return;
     }
     _source.text = name;
@@ -59,6 +66,10 @@ class _IncomeSheetState extends State<IncomeSheet> {
     final vm = context.read<IncomeViewModel>();
     final amount = CurrencyFormatter.parse(_amount.text)!;
     final existing = vm.sourceNamed(_source.text);
+    final spent = existing == null
+        ? 0.0
+        : context.read<ExpenseViewModel>().totalFromAccount(existing.source);
+    final currentBalance = existing == null ? 0.0 : existing.amount - spent;
 
     final confirmed = existing == null
         ? await confirmSave(
@@ -78,8 +89,8 @@ class _IncomeSheetState extends State<IncomeSheet> {
             summary: ConfirmSummary(
               icon: moneySourceIcon(existing.source),
               title: existing.source,
-              subtitle: '${existing.amount.asRinggit} + ${amount.asRinggit}',
-              amount: existing.amount + amount,
+              subtitle: '${currentBalance.asRinggit} + ${amount.asRinggit}',
+              amount: currentBalance + amount,
             ),
             confirmLabel: 'Tambah',
           );
@@ -130,7 +141,7 @@ class _IncomeSheetState extends State<IncomeSheet> {
             _SourceTile(
               income: income,
               spent: expenses.totalFromAccount(income.source),
-              onTap: () => showIncomeEditSheet(context, income),
+              onTap: () => AccountHistoryView.open(context, income),
             ),
           ],
         const SizedBox(height: 24),

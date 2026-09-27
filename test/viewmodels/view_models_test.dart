@@ -610,6 +610,9 @@ void main() {
       final gx = vm.incomes.single;
       expect(gx.amount, 12);
       expect(gx.date, DateTime(2026, 9, 3));
+      expect(gx.historyEntries, hasLength(2));
+      expect(gx.historyEntries.last.amount, 10);
+      expect(gx.historyEntries.last.date, DateTime(2026, 9, 21, 12));
     });
 
     test('replace sets a new balance, even zero, and can rename', () async {

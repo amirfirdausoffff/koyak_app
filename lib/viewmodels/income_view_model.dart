@@ -1,5 +1,6 @@
 import '../core/utils/id_generator.dart';
 import '../models/income_model.dart';
+import '../models/income_entry.dart';
 import '../models/year_month.dart';
 import 'persisted_list_view_model.dart';
 
@@ -59,6 +60,14 @@ class IncomeViewModel extends PersistedListViewModel<IncomeModel> {
     return incomes.where((i) => i.source.toLowerCase() == name).firstOrNull;
   }
 
+  /// Every saved monthly record for one source, used by its account history.
+  List<IncomeModel> recordsForSource(String source) {
+    final name = resolveSource(source).toLowerCase();
+    return items
+        .where((income) => income.source.toLowerCase() == name)
+        .toList();
+  }
+
   /// The source an income is saved with: blank means [defaultSource].
   static String resolveSource(String source) {
     final name = source.trim();
@@ -72,6 +81,7 @@ class IncomeViewModel extends PersistedListViewModel<IncomeModel> {
         source: resolveSource(source),
         amount: amount,
         date: _clock(),
+        entries: [IncomeEntry(amount: amount, date: _clock())],
       ),
     );
   }
@@ -89,6 +99,12 @@ class IncomeViewModel extends PersistedListViewModel<IncomeModel> {
         income.copyWith(
           source: resolveSource(source),
           amount: change.apply(income.amount, value),
+          entries: change == AmountChange.add
+              ? [
+                  ...income.historyEntries,
+                  IncomeEntry(amount: value, date: _clock()),
+                ]
+              : income.entries,
         )
       else
         income,
