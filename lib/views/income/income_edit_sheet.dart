@@ -11,18 +11,22 @@ import '../shared/widgets/amount_field.dart';
 import '../shared/widgets/confirm_dialogs.dart';
 import '../shared/widgets/koyak_sheet.dart';
 
-Future<void> showIncomeEditSheet(BuildContext context, IncomeModel income) =>
-    showKoyakSheet<void>(
-      context,
-      title: 'Kemaskini Sumber',
-      builder: (_) => IncomeEditSheet(income: income),
-    );
+Future<void> showIncomeEditSheet(
+  BuildContext context,
+  IncomeModel income, {
+  double spent = 0,
+}) => showKoyakSheet<void>(
+  context,
+  title: 'Kemaskini Sumber',
+  builder: (_) => IncomeEditSheet(income: income, spent: spent),
+);
 
 /// Top up, correct, rename or remove one money source.
 class IncomeEditSheet extends StatefulWidget {
-  const IncomeEditSheet({super.key, required this.income});
+  const IncomeEditSheet({super.key, required this.income, this.spent = 0});
 
   final IncomeModel income;
+  final double spent;
 
   @override
   State<IncomeEditSheet> createState() => _IncomeEditSheetState();
@@ -35,6 +39,7 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
   AmountChange _change = AmountChange.add;
 
   IncomeModel get _income => widget.income;
+  double get _currentBalance => _income.amount - widget.spent;
 
   @override
   void dispose() {
@@ -45,9 +50,9 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
 
   /// The amount after this edit, or null while the input is invalid.
   double? _resultingAmount(String input) {
-    if (input.trim().isEmpty) return _income.amount;
+    if (input.trim().isEmpty) return _currentBalance;
     final value = CurrencyFormatter.parse(input);
-    return value == null ? null : _change.apply(_income.amount, value);
+    return value == null ? null : _change.apply(_currentBalance, value);
   }
 
   Future<void> _save() async {
@@ -55,7 +60,12 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
     final value = CurrencyFormatter.parse(_amount.text) ?? 0;
     final change = _amount.text.trim().isEmpty ? AmountChange.add : _change;
     final name = IncomeViewModel.resolveSource(_name.text);
-    final newAmount = change.apply(_income.amount, value);
+    final newBalance = change.apply(_currentBalance, value);
+    // The stored amount is all money ever added; expenses stay as separate
+    // records. A replacement therefore includes what was already spent.
+    final newAmount = change == AmountChange.replace
+        ? newBalance + widget.spent
+        : _income.amount + value;
 
     final nothingChanged =
         name == _income.source && newAmount == _income.amount;
@@ -72,10 +82,10 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
         title: name,
         subtitle: switch (change) {
           AmountChange.add =>
-            '${_income.amount.asRinggit} + ${value.asRinggit}',
-          AmountChange.replace => 'Dulu ${_income.amount.asRinggit}',
+            '${_currentBalance.asRinggit} + ${value.asRinggit}',
+          AmountChange.replace => 'Dulu ${_currentBalance.asRinggit}',
         },
-        amount: newAmount,
+        amount: newBalance,
       ),
     );
     if (!confirmed || !mounted) return;
@@ -83,7 +93,7 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
     await context.read<IncomeViewModel>().adjust(
       _income.id,
       source: name,
-      value: value,
+      value: change == AmountChange.replace ? newAmount : value,
       change: change,
     );
     if (mounted) Navigator.of(context).pop();
@@ -113,7 +123,7 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _CurrentAmount(income: _income),
+          _CurrentAmount(income: _income, balance: _currentBalance),
           const SizedBox(height: 16),
           TextFormField(
             controller: _name,
@@ -182,9 +192,10 @@ class _IncomeEditSheetState extends State<IncomeEditSheet> {
 }
 
 class _CurrentAmount extends StatelessWidget {
-  const _CurrentAmount({required this.income});
+  const _CurrentAmount({required this.income, required this.balance});
 
   final IncomeModel income;
+  final double balance;
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +230,7 @@ class _CurrentAmount extends StatelessWidget {
                     style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                   Text(
-                    income.amount.asRinggit,
+                    balance.asRinggit,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,

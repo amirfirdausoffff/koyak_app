@@ -320,6 +320,9 @@ void main() {
     // First match is the source card; the other is the "GX Bank" chip.
     await tester.tap(find.text('GX Bank').first);
     await tester.pumpAndSettle();
+    expect(find.text('Sejarah akaun'), findsOneWidget);
+    await tester.tap(find.byTooltip('Kemaskini akaun'));
+    await tester.pumpAndSettle();
     expect(find.text('Kemaskini Sumber'), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField).last, '10');
@@ -335,6 +338,56 @@ void main() {
     // Back on the sources list with the new balance.
     expect(find.text('Kemaskini Sumber'), findsNothing);
     expect(find.text('RM 12.00'), findsWidgets);
+  });
+
+  testWidgets('top up uses an account balance after its expenses', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        incomes: [
+          IncomeModel(
+            id: 'gx',
+            source: 'GX Bank',
+            amount: 100,
+            date: DateTime.now(),
+          ),
+        ],
+        expenses: [
+          ExpenseModel(
+            id: 'coffee',
+            title: 'Kopi',
+            amount: 20,
+            category: ExpenseCategory.makan,
+            account: 'GX Bank',
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Duit'));
+    await tester.pumpAndSettle();
+    expect(find.text('RM 80.00'), findsWidgets);
+
+    await tester.tap(find.text('GX Bank').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Duit masuk'), findsWidgets);
+    expect(find.text('Kopi'), findsOneWidget);
+    await tester.tap(find.byTooltip('Kemaskini akaun'));
+    await tester.pumpAndSettle();
+    expect(find.text('Jumlah sekarang'), findsOneWidget);
+    expect(find.text('RM 80.00'), findsWidgets);
+
+    await tester.enterText(find.byType(TextFormField).last, '10');
+    await tester.pump();
+    expect(find.text('Jumlah lepas simpan: RM 90.00'), findsOneWidget);
+
+    await tester.tap(find.text('Simpan'));
+    await tester.pumpAndSettle();
+    expect(find.text('RM 80.00 + RM 10.00'), findsOneWidget);
+    expect(find.text('RM 90.00'), findsOneWidget);
   });
 
   testWidgets('adding a one-off debt', (tester) async {
