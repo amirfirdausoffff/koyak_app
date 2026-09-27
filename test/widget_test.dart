@@ -340,6 +340,47 @@ void main() {
     expect(find.text('RM 12.00'), findsWidgets);
   });
 
+  testWidgets('income sheet uses a collapsed hybrid add-money composer', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildApp(
+        incomes: [
+          IncomeModel(
+            id: 'gx',
+            source: 'GX Bank',
+            amount: 100,
+            date: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Duit'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('income-source-field')), findsNothing);
+    expect(find.text('Tambah duit'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('toggle-add-income')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('income-source-field')), findsOneWidget);
+    expect(find.text('Akaun terkini'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('income-source-field')),
+      'Bonus Projek',
+    );
+    await tester.enterText(find.byType(TextFormField).last, '250');
+    await tester.ensureVisible(find.byKey(const ValueKey('save-income')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-income')));
+    await tester.pumpAndSettle();
+    expect(find.text('Tambah Duit?'), findsOneWidget);
+    expect(find.text('Bonus Projek'), findsWidgets);
+    expect(find.text('RM 250.00'), findsOneWidget);
+  });
+
   testWidgets('top up uses an account balance after its expenses', (
     tester,
   ) async {
